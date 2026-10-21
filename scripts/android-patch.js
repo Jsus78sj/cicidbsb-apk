@@ -11,7 +11,6 @@ import {join,dirname} from "node:path";
 import {fileURLToPath} from "node:url";
 
 const isMain=process.argv[1]&&fileURLToPath(import.meta.url)===process.argv[1];
-if(isMain)main();
 function main(){
 const ROOT=join(dirname(fileURLToPath(import.meta.url)),"..");
 const A=join(ROOT,"android");
@@ -175,3 +174,7 @@ public class MainActivity extends BridgeActivity {
   }
 }
 `}
+
+/* آخرَ الملفّ عمداً: main() يستعمل MARK/MIMES (const) ولا تُهيَّأ قبل أسطرها —
+   استدعاؤه في الأعلى يرمي «Cannot access 'MARK' before initialization» */
+if(isMain)main();
