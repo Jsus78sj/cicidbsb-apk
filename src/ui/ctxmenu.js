@@ -14,6 +14,7 @@ import {pickable} from "../core/layers.js";
 import {runSpec} from "./ribbon/wire.js";
 import {HOOK,lazy} from "./bus.js";
 import {escapeHtml as esc} from "../core/escape.js";
+import {touchText} from "./touchtext.js";
 
 const $=s=>document.querySelector(s);
 const ic=(n,s)=>UIS.icons?icon(n,s||14):"";
@@ -101,7 +102,8 @@ export function ctxOpen(x,y){
  m.innerHTML=ROWS.map((r,i)=>r.s?`<div class="pmS"></div>`
   :(r.h?`<div class="pmH">${esc(r.h)}</div>`
   :`<button type="button" class="pmI" data-ctx="${i}">`
-   +`${ic(r.ico||"ctx")}<span>${esc(r.n)}</span></button>`)).join("");
+   /* على الهاتف لا «(Enter)» ولا «(Esc)»: الزرُّ يقول ما يفعله فقط */
+   +`${ic(r.ico||"ctx")}<span>${esc(touchText(r.n))}</span></button>`)).join("");
  m.hidden=false;
  const w=m.offsetWidth||220, h=m.offsetHeight||260;
  m.style.insetInlineStart=Math.round(

@@ -2,6 +2,10 @@
 export const HOOK={
  props:()=>{}, refresh:()=>{}, status:()=>{},
  report:()=>{}, prompt:()=>{}, toggles:()=>{}, help:()=>{},
+ /* promptSoon: مزامنةُ الواجهة مرّةً لكلّ إطار (المرحلة ٦) — يناديها
+    مسارُ الحركة الساخن وحده؛ والافتراضُ هنا فوريّ فلا يتغيّر شيءٌ لمن
+    لم يوصِلها (الاختبارات) */
+ promptSoon:()=>HOOK.prompt(),
  defs:()=>{}, ws:()=>{}, ctx:()=>false,
  layCtl:()=>{}, ctxPanel:()=>{},
  clean:()=>{}          /* مالكه wire.setClean — والإرساء يطلبه */

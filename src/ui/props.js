@@ -1,6 +1,8 @@
 /* ═══ اللوحة الجانبية: المشروع · الطبقات · الخصائص · الجدول ═══
    في التحديد المتعدّد: الحقل المختلف يظهر فارغاً بعلامة «متعدّد»
    ولا يُكتب من تلقائه. */
+import {touchText} from "./touchtext.js";
+import {toast} from "./toast.js";
 import {S,edit,editFailed,canUndo,canRedo,newState,ensureShape,setEditError} from "../core/state.js";
 import {M,m2,m3,mnum,clamp,isLen,sqm,deg,rng2,dm2,dim2} from "../core/units.js";
 import {wallById,wallLen,dir,looseEnds,isLow,lowH,isArc,arcParams} from "../core/walls.js";
@@ -47,13 +49,15 @@ export function rep(cls,msg){
  if(!LOG)return;
  const d=document.createElement("div");
  d.className="ln "+(CLS[cls]||"in");
- d.textContent=String(msg==null?"":msg);
+ /* على الهاتف لا Ctrl ولا Esc: يُبدَّل المفتاحُ بزرِّه أو يُحذَف */
+ d.textContent=touchText(msg);
  LOG.appendChild(d);
+ toast(cls,d.textContent);      /* الهاتف: تنبيهٌ عابر بدل سطرين دائمين (المرحلة ٨) */
  while(LOG.childElementCount>400)LOG.removeChild(LOG.firstChild);
  LOG.scrollTop=LOG.scrollHeight;
 }
 setEditError(m=>rep("er",m));
-export const eInfo=m=>{const e=$("#stInfo"); if(e)e.textContent=m||""};
+export const eInfo=m=>{const e=$("#stInfo"); if(e)e.textContent=m?touchText(m):""};
 const eSel=m=>{const e=$("#stSel"); if(e)e.textContent=m||""};
 
 const OPT=(arr,cur)=>arr.map(([v,t])=>

@@ -47,6 +47,9 @@ export function shimCanvas(){
      Math.round(st.w*0.6), Math.round(st.h*0.4)]);
    },
    createPattern:()=>({__pat:1}),
+   /* نسخُ صورةٍ بين قماشين (طبقةُ المخطّط المحفوظة · العدسة — المرحلة ٦
+      من خطّة الهاتف): لا بكسلات هنا، فالنداءُ يُعَدّ ولا يرسم */
+   drawImage(){st.blits=(st.blits||0)+1},
    getImageData(x,y,w,h){
     const d=new Uint8ClampedArray(w*h*4).fill(255);
     st.ink.forEach(([rx,ry,rw,rh])=>{

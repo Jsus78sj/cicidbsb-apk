@@ -52,7 +52,9 @@ group("توصيل المصدر",()=>{
  ok(!/[^.]\bsetTimeout\(/.test(hp),"بلا مؤقّتات");
  ok(/endCompareIfActive/.test(km)&&/Escape"&&endCompareIfActive/.test(km),"Esc ينهي المقارنة");
  ok(/clearCompareBase\(\); newState\(\)/.test(pr),"«مشروع جديد» يمسح المقارنة");
- ok(/drawEnds\(\);\s*drawCompare\(\);[^\n]*\n\s*drawPre\(\)/.test(cv),"drawCompare بعد drawEnds وقبل drawPre");
+ /* المرحلة ٦ من خطّة الهاتف: drawCompare آخرُ الطبقةِ الثابتة وdrawPre
+    أوّلُ الحيّة — الترتيبُ نفسُه، بينهما حدُّ الطبقتين (وشبحُ الكتلة) */
+ ok(/drawEnds\(\);\s*drawCompare\(\);[^\n]*\n\}\s*function paintLive\(\)\{[\s\S]{0,200}?drawPre\(\)/.test(cv),"drawCompare بعد drawEnds وقبل drawPre");
  ok(!/#[0-9a-fA-F]{6}/.test(cv.split("function drawCompare")[1].split("function drawGrips")[0]),
   "لا ألوان حرفية داخل drawCompare");
  ok(/compareAdd/.test(th)&&/compareDel/.test(th)&&/compareChg/.test(th),"ألوان المقارنة في theme.js");

@@ -6,6 +6,6 @@ assert.ok(tool);
 assert.equal(findTool('qo'),tool);
 assert.equal(findTool('فتحة_سريعة'),tool);
 assert.equal(tool.steps[0].ent,'wall');
-assert.equal(tool.steps[1].text,true);
+assert.ok(tool.steps[1].text); /* أعلامُ الخطوة 1 لا true — اصطلاحُ المشروع (modify · sheet) */
 assert.ok(tool.opts.some(x=>x.k==='w'));
 console.log('quick opening registration: ok');

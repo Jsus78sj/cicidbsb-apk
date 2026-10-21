@@ -1,7 +1,7 @@
 import {addWall} from './walls.js';
 import {addArea} from './areas.js';
 import {addOpen} from './opens.js';
-import {edit} from './state.js';
+import {strictEdit as edit} from './strict-edit.js';   /* الفشلُ يُرمى لا يُبلَع (المرحلة ٩) */
 import {rectangleFromCorners} from './quick-draw.js';
 
 export function commitGuidedRoom(a,b,options={}){

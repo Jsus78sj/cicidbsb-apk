@@ -190,6 +190,11 @@
         إبهامِ من يُمسِك الهاتفَ بيدٍ واحدة. ويُخفى على الحواسيبِ
         بالتنسيقِ (لا بـhidden) فلا يُكرَّر سطحٌ بصرياً. -->
    <div id="thumb" role="toolbar" aria-label="أدوات سريعة وبحث"></div>
+   <!-- ═══ أزرارُ الرسم باللمس ═══ المرحلة ١ من خطّة الهاتف
+        ✓ إنهاء · ⭘ إغلاق · ↶ تراجع · ✕ إلغاء — بدل Enter وC وEsc.
+        يظهر أثناء الأداة وحدها على اللمس (touch.css)، ويحلّ محلَّ
+        شريطِ الإبهام في موضعه نفسه. يبنيه ui/touchbar.js. -->
+   <div id="touchBar" dir="rtl" role="toolbar" aria-label="أزرار الرسم"></div>
    <div id="compass"></div>
    <div id="dynBox" hidden></div>
    <div id="qpCard" hidden dir="rtl">
@@ -385,6 +390,8 @@
 <link rel="modulepreload" href="src/ui/blockdraw.js">
 <link rel="modulepreload" href="src/ui/canvas.js">
 <link rel="modulepreload" href="src/ui/cmdline.js">
+<link rel="modulepreload" href="src/ui/touchtext.js">
+<link rel="modulepreload" href="src/ui/toast.js">
 <link rel="modulepreload" href="src/io/dxfin.js">
 <link rel="modulepreload" href="src/core/code.js">
 <link rel="modulepreload" href="src/core/inspect.js">
@@ -450,13 +457,15 @@
 <link rel="modulepreload" href="src/ai/generate.js">
 <link rel="modulepreload" href="src/ai/review.js">
 <link rel="modulepreload" href="src/ui/ai.js">
-<link rel="modulepreload" href="src/ui/searchIndex.js">
 <link rel="modulepreload" href="src/ui/appmenu.js">
 <link rel="modulepreload" href="src/ui/dyninput.js">
 <link rel="modulepreload" href="src/ui/ctxmenu.js">
 <link rel="modulepreload" href="src/ui/helppan.js">
 <link rel="modulepreload" href="src/ui/sugg.js">
 <link rel="modulepreload" href="src/ui/keymap.js">
+<link rel="modulepreload" href="src/ui/touchbar.js">
+<link rel="modulepreload" href="src/ui/backnav.js">
+<link rel="modulepreload" href="src/ui/fabdrag.js">
 <link rel="modulepreload" href="src/app.js">
 <!-- PRELOAD:end -->
 <script type="module" src="src/bootguard.js"></script>

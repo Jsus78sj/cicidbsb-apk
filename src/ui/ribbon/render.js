@@ -77,8 +77,49 @@ function panelHtml(tid,p){
     +`aria-label="افتح لوحة ${esc(p.n)}">${ic("maxi",11)||"◥"}</button>`:"")
   +`</div></section>`;
 }
+/* ═══ تبويباتُ الهاتف ═══ المرحلة ٣ من خطّة الهاتف
+   سبعةُ تبويباتٍ (وثامنٌ سياقيٌّ عند التحديد) على ٣٦٠ بكسلاً تصير
+   أزراراً بعرض ٤٥ بكسلاً لا تُقرأ أسماؤها. فعلى الهاتف تظهر أربعةٌ هي
+   ما يُطلَب في كلّ جلسة — **رسم · تعديل · عرض · إخراج** — والباقي
+   (تأشير · خدمات · إدارة) وراء «المزيد» مع مفتاح وضع المبتدئ.
+   والتبويبُ الثانويُّ لا يُحذف ولا يُنسَخ: يحمل الصنفَ sec فيخفيه
+   touch.css في قسم الهاتف وحده، وزرُّ «المزيد» يحمل اسمَه حين يكون هو
+   النشط. فالحاسوبُ يرى السبعةَ كما كانت حرفاً. */
+export const PHONE_TABS=["draw","edit","view","out"];
+const isSec=t=>!PHONE_TABS.includes(t.id);
+function moreHtml(T,BEG){
+ const sec=T.filter(isSec);
+ return `<button type="button" id="rbMoreTab" class="rbMoreTab"`
+  +` aria-haspopup="menu" aria-expanded="false" aria-controls="rbMoreMenu">`
+  +`<span class="tn">المزيد</span><span class="cv" aria-hidden="true">▴</span></button>`
+  +`<div id="rbMoreMenu" role="menu" aria-label="باقي التبويبات" hidden>`
+  +sec.map(t=>`<button type="button" role="menuitem" data-tab="${esc(t.id)}">`
+   +`${esc(t.n)}</button>`).join("")
+  +`<span class="mmSep" role="separator"></span>`
+  +`<button type="button" role="menuitem" data-act="beginner" class="mmBeg">`
+  +`${BEG?"اعرض كل الأدوات":"وضع المبتدئ"}</button></div>`;
+}
+/* «المزيد» يحمل اسمَ التبويبِ الثانويِّ النشط — فلا يضيع المستخدم */
+function syncMoreTab(id){
+ const b=$("#rbMoreTab"); if(!b)return;
+ const t=shownRibbon().find(x=>x.id===id);
+ const sec=!!(t&&isSec(t));
+ b.classList.toggle("on",sec);
+ const n=b.querySelector(".tn");
+ const txt=sec?t.n:"المزيد";
+ if(n&&n.textContent!==txt)n.textContent=txt;
+}
+export function moreTabsOpen(){const m=$("#rbMoreMenu"); return !!(m&&!m.hidden)}
+export function toggleMoreTabs(on){
+ const m=$("#rbMoreMenu"), b=$("#rbMoreTab");
+ if(!m||!b)return false;
+ const v=(on===undefined)?m.hidden:!!on;
+ m.hidden=!v;
+ b.setAttribute("aria-expanded",String(v));
+ return v;
+}
 function tabBtn(t,ctx){
- return `<button type="button" class="rbTab${ctx?" ctx":""}" `
+ return `<button type="button" class="rbTab${ctx?" ctx":""}${!ctx&&isSec(t)?" sec":""}" `
   +`role="tab" id="rbT-${esc(t.id)}" aria-controls="rbP-${esc(t.id)}" `
   +`aria-selected="false" tabindex="-1" data-tab="${esc(t.id)}">`
   +`<span class="tn">${esc(t.n)}</span>`
@@ -107,6 +148,7 @@ export function buildRibbon(){
  rb.innerHTML=`
 <div id="rbTabs" role="tablist" aria-label="شريط الأوامر">
  ${TABS.map(t=>tabBtn(t)).join("")}
+ ${moreHtml(TABS,BEG)}
  <span class="gap"></span>
  <button type="button" id="rbMode" class="rbMode${BEG?" on":""}"
   data-act="beginner" aria-pressed="${BEG?"true":"false"}"
@@ -159,6 +201,8 @@ export function setTab(id,quiet){
   p.hidden=(p.id!=="rbP-"+id);
  });
  if(!quiet&&!id.startsWith("ctx"))UIS.tab=id;
+ syncMoreTab(id);
+ toggleMoreTabs(false);
  refitRibbon();
  return true;
 }

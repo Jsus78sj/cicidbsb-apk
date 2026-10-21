@@ -164,6 +164,43 @@ let barSig=null;
    يكتب فيه كلّما ظهر حقلٌ شرطيّ أو اختفى. */
 let moreOpen=false;
 
+/* ═══ الطيُّ على الهاتف ═══ المرحلة ١ من خطّة الهاتف
+   على ٣٦٠–٤١٢ بكسلاً كانت البطاقةُ (السماكة · النوع · المسار + التلميح)
+   تلتفّ ثلاثةَ أسطرٍ وتغطّي نصفَ اللوح فوق موضعِ الإصبع. فصارت تُرسَم
+   **مطويّةً**: اسمُ الأداة وزرٌّ واحدٌ يلخّص القيَمَ الظاهرة
+   («٠٫٢ · خارجي ▾»)، ولمسةٌ عليه تنشرها. ولمسةٌ على اللوح تطويها من
+   جديد لأنّ قصدَها الرسمُ لا الخيارات، وكلُّ أداةٍ جديدةٍ تبدأ مطويّة.
+   والطيُّ سمةٌ (data-fold) يقرؤها touch.css داخل قسم الهاتف وحده،
+   فالحاسوبُ لا يرى الزرَّ ولا يتغيّر عنده شيء. */
+let fold=true, foldTool=null;
+const valTxt=(f,v)=>{
+ if(v==null||v==="")v=f.def;
+ if(f.type==="chk")return (v===1||v===true||v==="1")?f.label:"";
+ if(f.type==="sel"){
+  const it=itemsOf(f).find(([iv])=>String(iv)===String(v));
+  return it?String(it[1]):String(v==null?"":v);
+ }
+ return String(v==null?"":v);
+};
+export function foldSummary(d){
+ if(!d)return "";
+ const o=R.OPT[d.id]||{};
+ return headUnits(d).flatMap(u=>u.fields)
+  .map(f=>valTxt(f,o[f.k])).filter(Boolean).slice(0,3).join(" · ");
+}
+export const isFolded=()=>fold;
+export function setFold(on){
+ fold=!!on;
+ const box=$("#optbar");
+ if(box&&box.childElementCount){
+  box.dataset.fold=fold?"1":"0";
+  const b=box.querySelector("#obFold");
+  if(b)b.setAttribute("aria-expanded",String(!fold));
+ }
+ if(fold&&moreOpen)toggleMore(false);
+ return fold;
+}
+
 /* ═══ قائمةٌ حيّةٌ لا ثابتة ═══ P-جديد (الأولوية ٤)
    كانت `items` مصفوفةً مُجمَّدةً عند تعريف الأداة. وأنماطُ التهشير
    بياناتُ مشروعٍ يضيفها المستخدمُ في «مدير الهيئة»، فلا تُعرَف وقتَ
@@ -235,11 +272,22 @@ export function buildOptbar(){
   /* وضع التحديد: لا خيارات، والشريط عائم فوق الرسم فيُترك فارغاً
      (يخفيه CSS بـ :empty) بدل تغطية الرسم بنصّ إرشاد. */
   box.innerHTML="";
+  foldTool=null;
   return;
  }
+ /* أداةٌ جديدةٌ تبدأ مطويّة؛ وإعادةُ البناءِ للأداةِ نفسِها (حقلٌ شرطيٌّ
+    ظهر) تحفظ ما اختاره المستخدم */
+ if(foldTool!==d.id){fold=true; foldTool=d.id}
  const o=R.OPT[d.id]||{};
  const tail=tailUnits(d), ch=tailChanged(d);
+ const sum=foldSummary(d);
+ box.dataset.fold=fold?"1":"0";
  box.innerHTML=`<span class="tl">${esc(d.label)}</span>`
+  +(visFields(d).length||d.hint
+   ?`<button type="button" id="obFold" aria-expanded="${!fold}"`
+    +` aria-label="خيارات ${esc(d.label)}">`
+    +`<span class="sm">${esc(sum||"الخيارات")}</span>`
+    +`<span class="cv" aria-hidden="true">▾</span></button>`:"")
   +headUnits(d).map(u=>unitOf(u,o)).join("")
   /* «المزيد» لا يظهر لأداةٍ بثلاثةٍ أو أقلّ: زرٌّ يفتح فراغاً يُعلِّم
      أنّ أزرارَ هذا الشريطِ لا تُقرأ. */
@@ -275,6 +323,11 @@ export function syncOptbar(){
  const A=document.activeElement;
  /* علامةُ «المزيد» تتبع القيَمَ: خيارٌ غُيِّرَ وهو مخفيٌّ يجب أن يُنادي
     لحظةَ تغيُّرِه لا عند أوّلِ إعادةِ بناء. */
+ const fb=box.querySelector("#obFold .sm");
+ if(fb){
+  const t=foldSummary(d)||"الخيارات";
+  if(fb.textContent!==t)fb.textContent=t;
+ }
  const mb=box.querySelector("#okMore");
  if(mb){
   const ch=tailChanged(d);
@@ -337,12 +390,20 @@ $("#optbar").addEventListener("click",e=>{
  if(!b)return;
  toggleMore();
 });
+$("#optbar").addEventListener("click",e=>{
+ const b=e.target.closest&&e.target.closest("#obFold");
+ if(!b)return;
+ setFold(!fold);
+});
 /* نقرةٌ خارجَ المُنسدلِ تُغلِقه — وهو فوقَ الرسمِ فالنقرةُ على اللوحةِ
    قصدُها الرسمُ لا الخيارات. ومستمعٌ واحدٌ على المستندِ لا مستمعٌ
    يُعاد ربطُه مع كلِّ بناءٍ (P2-001). */
 document.addEventListener("pointerdown",e=>{
- if(!moreOpen)return;
  const t=e.target;
+ /* والمستمعُ نفسُه يطوي البطاقةَ المنشورةَ على الهاتف عند لمس اللوح:
+    قصدُها الرسم (المرحلة ١ من خطّة الهاتف) */
+ if(!fold&&t&&t.id==="cv")setFold(true);
+ if(!moreOpen)return;
  if(t.closest&&(t.closest("#okPop")||t.closest("#okMore")))return;
  toggleMore(false);
 },true);

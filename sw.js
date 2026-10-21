@@ -21,7 +21,7 @@
       واحدة. وأوّلُ تثبيتٍ (لا عاملَ قبله) يُفعَّل فوراً بلا سؤال.
    ٥) الكاشاتُ القديمة تُحذَف في activate، وحدُّ عددٍ للمدخلات يمنع
       نموّاً بلا سقف.                                                */
-const VERSION="1.2.0";                 /* = src/core/version.js */
+const VERSION="2.0.0";                 /* = src/core/version.js */
 const CACHE=`civildraft-v${VERSION}`;
 const MAXENTRIES=400;                  /* سقفُ مدخلات الكاش */
 
@@ -76,26 +76,27 @@ const CORE=[
  "./src/tools/ref.js","./src/tools/registry.js","./src/tools/roof.js","./src/tools/section.js",
  "./src/tools/sheet.js","./src/tools/showcase.js","./src/tools/sketch.js","./src/tools/tplscript.js",
  "./src/tutor/engine.js","./src/tutor/lessons.js","./src/ui/actions.js","./src/ui/ai.js",
- "./src/ui/appcmds.js","./src/ui/appmenu.js","./src/ui/blockdraw.js","./src/ui/blockpanel.js",
- "./src/ui/bus.js","./src/ui/canvas.js","./src/ui/cmdkeys.js","./src/ui/cmdline.js",
- "./src/ui/ctxmenu.js","./src/ui/defaults.js","./src/ui/dock.js","./src/ui/dyninput.js",
- "./src/ui/focustrap.js","./src/ui/gallery.js","./src/ui/gate.js","./src/ui/helpbot.js",
- "./src/ui/helpbutton.js","./src/ui/helppan.js","./src/ui/historypanel.js","./src/ui/hygiene.js",
- "./src/ui/icons.js","./src/ui/inspector.js","./src/ui/keymap.js","./src/ui/layout.js",
- "./src/ui/learn.js","./src/ui/levelManager.js","./src/ui/levelbar.js","./src/ui/navbar.js",
- "./src/ui/optbar.js","./src/ui/overlay.js","./src/ui/palette.js","./src/ui/panels.js",
- "./src/ui/presenter.js","./src/ui/pricingPanel.js","./src/ui/props.js","./src/ui/quickprops.js",
- "./src/ui/recentbar.js","./src/ui/ribbon/beginner.js","./src/ui/ribbon/custom.js","./src/ui/ribbon/editor.js",
- "./src/ui/ribbon/overflow.js","./src/ui/ribbon/render.js","./src/ui/ribbon/schema.js","./src/ui/ribbon/wire.js",
- "./src/ui/rpt.js","./src/ui/searchIndex.js","./src/ui/searchcommon.js","./src/ui/statusbar.js",
- "./src/ui/store.js","./src/ui/studio.js","./src/ui/styleManager.js","./src/ui/sugg.js",
- "./src/ui/theme.js","./src/ui/tour.js","./src/ui/underlayPanel.js","./src/ui/view3d.js",
+ "./src/ui/appcmds.js","./src/ui/appmenu.js","./src/ui/backnav.js","./src/ui/blockdraw.js",
+ "./src/ui/blockpanel.js","./src/ui/bus.js","./src/ui/canvas.js","./src/ui/cmdkeys.js",
+ "./src/ui/cmdline.js","./src/ui/ctxmenu.js","./src/ui/defaults.js","./src/ui/dock.js",
+ "./src/ui/dyninput.js","./src/ui/fabdrag.js","./src/ui/focustrap.js","./src/ui/gallery.js",
+ "./src/ui/gate.js","./src/ui/helpbot.js","./src/ui/helpbutton.js","./src/ui/helppan.js",
+ "./src/ui/historypanel.js","./src/ui/hygiene.js","./src/ui/icons.js","./src/ui/inspector.js",
+ "./src/ui/keymap.js","./src/ui/layout.js","./src/ui/learn.js","./src/ui/levelManager.js",
+ "./src/ui/levelbar.js","./src/ui/navbar.js","./src/ui/optbar.js","./src/ui/overlay.js",
+ "./src/ui/palette.js","./src/ui/panels.js","./src/ui/presenter.js","./src/ui/pricingPanel.js",
+ "./src/ui/props.js","./src/ui/quickprops.js","./src/ui/recentbar.js","./src/ui/ribbon/beginner.js",
+ "./src/ui/ribbon/custom.js","./src/ui/ribbon/editor.js","./src/ui/ribbon/overflow.js","./src/ui/ribbon/render.js",
+ "./src/ui/ribbon/schema.js","./src/ui/ribbon/wire.js","./src/ui/rpt.js","./src/ui/searchcommon.js",
+ "./src/ui/statusbar.js","./src/ui/store.js","./src/ui/studio.js","./src/ui/styleManager.js",
+ "./src/ui/sugg.js","./src/ui/theme.js","./src/ui/toast.js","./src/ui/touchbar.js",
+ "./src/ui/touchtext.js","./src/ui/tour.js","./src/ui/underlayPanel.js","./src/ui/view3d.js",
  "./src/ui/viewcmds.js","./src/ui/viewport.js","./src/ui/welcome-model.js","./src/ui/welcome.js",
  "./src/boot-splash.js","./src/core/dimension-input.js","./src/core/guided-room-wizard.js","./src/core/guided-room.js",
  "./src/core/quick-draw-transaction.js","./src/core/quick-draw.js","./src/core/quick-opening.js","./src/core/quick-preview.js",
- "./src/core/quick-room.js","./src/core/quick-wall.js","./src/tools/guidedroom.js","./src/tools/quickdraw.js",
- "./src/tools/quickopening.js","./src/tools/quickroom.js","./src/tools/quickwall.js","./src/ui/guidedroom-action.js",
- "./src/ui/guidedroom.js"
+ "./src/core/quick-room.js","./src/core/quick-wall.js","./src/core/strict-edit.js","./src/tools/guidedroom.js",
+ "./src/tools/quickdraw.js","./src/tools/quickopening.js","./src/tools/quickroom.js","./src/tools/quickwall.js",
+ "./src/ui/guidedroom-action.js","./src/ui/guidedroom.js"
 ];
 /* CORE:END */
 

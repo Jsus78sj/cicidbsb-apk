@@ -13,7 +13,6 @@ import * as R from "../tools/registry.js";
 import {draw} from "./canvas.js";
 import {HOOK} from "./bus.js";
 import {escapeHtml as esc} from "../core/escape.js";
-import {search as unifiedSearch} from "./searchIndex.js";
 
 const $=s=>document.querySelector(s);
 const ic=(n,s)=>UIS.icons?icon(n,s||16):"";
@@ -62,44 +61,50 @@ export const ROWS=[
  {act:"guideDlg",n:"الدليل التعليمي",ico:"help",k:""},
  {act:"help",n:"المساعدة",ico:"help",k:"F1"}
 ];
-/* ═══ بحث الأوامر ═══ فوق الفهرس الموحّد (searchIndex.js) — يُطلَب
-   نطاقٌ أوسع من الفهرس المُختلط (٢٤) قبل تصفية الأدوات وحدها وقصّ
-   التسعة الأُوَل، فلا يُزاحم مطابقاتِ الأفعال (act) مطابقاتِ
-   الأدوات المطلوبة هنا فعلاً. الشكل المُعاد {d,al,rank} كما كان
-   تماماً — renderSearch/runSearch أدناه لا تُمسّان. */
+/* ═══ بحث الأوامر ═══ فهرسٌ واحدٌ مع لوحة الأوامر (العدسة)
+   المرحلة ١ من خطّة الهاتف. كان هذا الحقلُ يبحث في **الأدوات وحدها**
+   (نوعُ الأمر وحده) فيكتب المستخدمُ «شاشة نظيفة» أو «حفظ» أو «قالب» فلا
+   يجد شيئاً، بينما العدسةُ تجدها كلَّها — بحثان في التطبيق نفسِه
+   بنتيجتين مختلفتين. الآن الحقلُ يسأل فهرسَ اللوحة (paletteQuery)
+   ويُنفِّذ بمنفّذها (paletteExec): أداةٌ · فعلٌ · قالبٌ · مقاسٌ · درسٌ
+   في الدليل، بالترتيب نفسِه وبالنتيجة نفسِها.
+   والاستيرادُ كسولٌ: palette.js ثقيلٌ (ai/plan · guide)، وهذه القائمةُ
+   تُبنى عند الإقلاع وتُستورَد في اختباراتٍ لا تحتاج البحث. */
+let PAL=null;
+const pal=()=>PAL||(PAL=import("./palette.js"));
 function search(q){
- if(!String(q||"").trim())return [];
- return unifiedSearch(q,24)
-  .filter(it=>it.type==="cmd")
-  .slice(0,9)
-  .map(it=>{
-   const d=R.TOOLS[it.id];
-   const al=Object.keys(R.TOOLS).filter(k=>R.TOOLS[k]===d&&k!==it.id);
-   return {d,al,rank:0};
-  });
+ if(!String(q||"").trim())return Promise.resolve([]);
+ return pal().then(P=>P.paletteQuery(q,9))
+  .catch(()=>[]);
 }
-let SR=[], SI=-1;
+let SR=[], SI=-1, SQ=0;
 
 function renderSearch(){
  const box=$("#amRes");
  if(!box)return;
- if(!SR.length){box.hidden=true; box.innerHTML=""; return}
- box.innerHTML=SR.map((r,i)=>
+ if(!SR.length){
+  const s=$("#amSearch");
+  const q=s&&String(s.value||"").trim();
+  box.hidden=!q;
+  box.innerHTML=q?`<div class="amR nm">لا نتيجة</div>`:"";
+  return;
+ }
+ box.innerHTML=SR.map((it,i)=>
   `<div class="amR${i===SI?" sel":""}" data-i="${i}">`
-  +`<b>${esc(r.d.label)}</b>`
-  +`<span class="mono">${esc(r.d.id)}`
-  +(r.al.length?" · "+esc(r.al.slice(0,3).join(" ")):"")+`</span>`
+  +`<b>${esc(it.label)}</b>`
+  +`<span class="mono">${esc(it.sub||"")}</span>`
   +`</div>`).join("");
  box.hidden=false;
 }
 function runSearch(i){
- const r=SR[i];
- if(!r)return;
+ const it=SR[i];
+ if(!it)return;
  close();
- R.begin(r.d);
- HOOK.prompt(); draw();
- const c=$("#clIn");
- if(c)c.focus();
+ pal().then(P=>{
+  P.paletteExec(it);
+  HOOK.prompt(); draw();
+  if(it.kind==="cmd"){const c=$("#clIn"); if(c)c.focus()}
+ }).catch(e=>HOOK.report("er","البحث: "+((e&&e.message)||e)));
 }
 /* ═══ الفتح والإغلاق ═══ */
 export function open(){
@@ -128,7 +133,7 @@ export function buildAppMenu(){
  p.innerHTML=`
 <div class="amHead">
  <input id="amSearch" type="text" spellcheck="false"
-  autocomplete="off" placeholder="ابحث عن أداة — جدار · باب · بُعد">
+  autocomplete="off" placeholder="ابحث: أداة · أمر · قالب — جدار · حفظ · شاشة نظيفة">
  <div id="amRes" hidden></div>
 </div>
 <div class="amBody" role="menu">
@@ -159,7 +164,12 @@ export function wireAppMenu(){
  const s=$("#amSearch");
  if(s){
   s.addEventListener("input",()=>{
-   SR=search(s.value); SI=SR.length?0:-1; renderSearch();
+   /* البحثُ وعدٌ: نتيجةُ حرفٍ قديمٍ تصل بعد الأحدث فلا تكتب فوقه */
+   const my=++SQ;
+   search(s.value).then(L=>{
+    if(my!==SQ)return;
+    SR=L; SI=SR.length?0:-1; renderSearch();
+   });
   });
   s.addEventListener("keydown",e=>{
    if(e.key==="Escape"){e.preventDefault(); close(); return}

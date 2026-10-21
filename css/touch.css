@@ -409,7 +409,8 @@ html.native input, html.native textarea, html.native [contenteditable]{
   body .hb-fab{bottom:calc(var(--stageBot,0px) + 64px)}
   /* شريطُ التنقّل أفقيٌّ: عمودياً كان ٣٣٣ بكسلاً في لوحٍ ارتفاعُه ١٩٥ */
   #navbar{flex-direction:row; inset-block-start:6px}
-  #compass{inset-inline:auto; left:auto; right:12px; inset-block-end:auto; inset-block-start:66px}
+  /* #stage معزولٌ dir="ltr": inset-inline-end = اليمين — بلا left/right (نظافة الاتجاه) */
+  #compass{inset-inline-start:auto; inset-inline-end:12px; inset-block-end:auto; inset-block-start:66px}
 }
 
 /* ═══ المرحلة F · لوحةُ المفاتيح ظاهرة (html.kb-open من platform/initKeyboard) ═══
@@ -417,3 +418,299 @@ html.native input, html.native textarea, html.native [contenteditable]{
 html.kb-open #ribbon, html.kb-open #thumb, html.kb-open body .hb-fab,
 html.kb-open #fabDock{display:none !important}
 html.kb-open body{--bodyPadB:0px}
+
+
+/* ═══ المرحلة ١ · الهاتف: أزرارُ الرسم وبطاقةٌ مطويّة ═══
+   (ui/touchbar.js · ui/optbar.js) — خصائصُ منطقيّةٌ وحدَها (inset-*)
+   فلا ينقلب شيءٌ بين RTL وLTR. */
+
+/* ─── أزرار ✓ ⭘ ↶ ✕ ───
+   مخفيّةٌ في كلّ عرضٍ، وتظهر على اللمس أو الضيق **أثناء الأداة وحدها**
+   (html.cdDraw). وموضعُها موضعُ شريطِ الإبهام نفسُه أسفلَ اللوح: شريطُ
+   الإبهام للبدء (بحث وأدوات) وهذا للإنهاء، فلا يُريان معاً. */
+#touchBar{display:none}
+@media (pointer:coarse), (max-width:768px){
+  html.cdDraw #touchBar{
+    position:absolute;
+    inset-inline:0; inset-block-end:var(--s-6);
+    margin-inline:auto; inline-size:max-content; max-inline-size:96vw;
+    z-index:var(--z-fab);
+    display:flex; flex-direction:column; align-items:stretch; gap:var(--s-4);
+    padding:var(--s-5) var(--s-6);
+    border-radius:var(--r3);
+    background:var(--glass); backdrop-filter:blur(10px);
+    border:1px solid var(--ln2);
+    box-shadow:var(--sh3),var(--edge);
+  }
+  /* ٤٨ بكسلاً لا ٤٤: هذه الأزرارُ تُضغط عشراتِ المرّات في الجلسة */
+  #touchBar .tbB{display:flex; align-items:center; justify-content:center; gap:var(--s-6)}
+  #touchBar .tbB button{
+    flex:none;
+    min-inline-size:56px; block-size:48px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:1px; padding:0 var(--s-8);
+    background:transparent; color:var(--fg);
+    border:1px solid transparent; border-radius:var(--r-pill);
+    font:inherit; cursor:pointer;
+    touch-action:manipulation; -webkit-tap-highlight-color:transparent;
+  }
+  #touchBar .tbB button b{font-size:19px; line-height:1; font-weight:600}
+  #touchBar .tbB button span{font-size:11px; line-height:1.1; color:var(--fg2)}
+  #touchBar .tbB button:active{background:var(--hov)}
+  #touchBar button:focus-visible{outline:var(--ring); outline-offset:-2px}
+  /* «إنهاء» هو الفعلُ الأكثرُ طلباً فيُميَّز، و«إلغاء» يُفصَل عنه */
+  #touchBar .tb-ok{background:var(--acq); color:var(--acf); border-color:var(--acb)}
+  #touchBar .tb-ok span{color:inherit}
+  #touchBar .tb-esc{margin-inline-start:var(--s-4); color:var(--fg2)}
+  /* أثناء الأداة: شريطُ الإبهام يُخلي مكانه، والبطاقةُ تعلو الأزرار */
+  html.cdDraw #thumb{display:none !important}
+  html.cdDraw #optbar{inset-block-start:auto; inset-block-end:calc(48px + var(--s-6)*3 + var(--s-5)*2)}
+  html.cdDraw.cdMeas #optbar{inset-block-end:calc(48px + 44px + var(--s-6)*3 + var(--s-5)*2 + var(--s-4))}
+}
+
+/* ─── بطاقةُ الخيارات مطويّة ───
+   زرُّ الطيّ لا يُرى على الحاسوب؛ على الهاتف تبقى البطاقةُ سطراً واحداً:
+   اسمُ الأداة + ملخّصُ القيَم، ولمسةٌ تنشرها. */
+#obFold{display:none}
+@media (max-width:768px), (max-height:500px) and (orientation:landscape) and (pointer:coarse){
+  #optbar{flex-wrap:nowrap; max-inline-size:calc(100% - 16px)}
+  #optbar[data-fold="0"]{flex-wrap:wrap; max-block-size:40vh; overflow-y:auto}
+  #optbar[data-fold="1"]{padding-block:var(--s-3); min-block-size:0; gap:var(--s-6)}
+  #optbar[data-fold="1"] > :not(.tl):not(#obFold){display:none !important}
+  #optbar .hint{display:none}
+  #obFold{
+    display:inline-flex; align-items:center; gap:var(--s-5);
+    min-block-size:40px; min-inline-size:0; max-inline-size:60vw;
+    padding:0 var(--s-8);
+    background:var(--bg4); color:var(--fg2);
+    border:1px solid var(--fldbd); border-radius:var(--r-pill);
+    font:inherit; font-size:13px; cursor:pointer;
+    touch-action:manipulation;
+  }
+  #obFold .sm{overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  #obFold .cv{flex:none; transition:transform var(--t-fast)}
+  #obFold[aria-expanded="true"]{background:var(--acq); color:var(--acf); border-color:var(--acb)}
+  #obFold[aria-expanded="true"] .cv{transform:rotate(180deg)}
+  /* المنشورةُ تُقرأ سطراً سطراً: «المزيد» يُفتح داخلها لا فوق الرسم */
+  #optbar[data-fold="0"] .okPop{position:static; max-inline-size:100%; box-shadow:none}
+}
+
+
+/* ═══ المرحلة ٢ · وضعُ الرسم على الهاتف ═══
+   اختيارُ أداةٍ يُخفي القشرةَ كلَّها (الترويسة · الشريط السفليّ · سطر
+   الأوامر · السجلّ · الحالة · العائمات) ويبقى على الشاشة: البطاقةُ
+   المطويّة (اسمُ الأداة) وحقلا القياس وأزرارُ ✓ ⭘ ↶ ✕. و✕ يُعيد كلَّ
+   شيء. فلا يعود «الشاشة النظيفة» وضعاً منفصلاً على الهاتف: هذا هو.
+   وخطوةُ النصّ الحرّ (html.cdText) تُبقي سطرَ الأوامر لأنّها تحتاجه.
+   والإخفاءُ هنا وحده (لا JS يلمس hidden)، فالحاسوبُ لا يتغيّر عنده شيء،
+   وResizeObserver على #stage (viewport.js) يكبّر اللوح تلقائياً. */
+/* الحاسوب واللوح: حقولُ القياس عند المؤشّر (#dynBox) تكفي، فلا صفَّ ثانٍ */
+#touchBar .tbM{display:none}
+@media (max-width:768px), (max-height:500px) and (orientation:landscape) and (pointer:coarse){
+  html.cdDraw #top,
+  html.cdDraw #ribbon,
+  html.cdDraw #status,
+  html.cdDraw #log,
+  html.cdDraw #fabDock,
+  html.cdDraw #navbar,
+  html.cdDraw #compass,
+  html.cdDraw #dynBox,
+  html.cdDraw #qpCard,
+  html.cdDraw body .hb-fab,
+  html.cdDraw body .helpbot{display:none !important}
+  html.cdDraw:not(.cdText) #cmdWrap{display:none !important}
+  html.cdDraw #side:not(.open), html.cdDraw #sideE:not(.open){display:none !important}
+  html.cdDraw body{--bodyPadB:0px}
+
+  /* ─── حقلا القياس ─── */
+  #touchBar .tbM{display:flex; align-items:center; gap:var(--s-5);
+    overflow-x:auto; scrollbar-width:none; overscroll-behavior-x:contain}
+  #touchBar .tbM::-webkit-scrollbar{display:none}
+  #touchBar .tbF{flex:none; display:flex; align-items:center; gap:var(--s-3);
+    background:var(--bg4); border:1px solid var(--fldbd); border-radius:var(--r2,8px);
+    padding-inline:var(--s-5); min-block-size:44px}
+  #touchBar .tbF span{font-size:11px; color:var(--fg3)}
+  #touchBar .tbF i{font-style:normal; font-size:11px; color:var(--fg3)}
+  #touchBar .tbF input{inline-size:64px; block-size:40px; border:0; background:transparent;
+    color:var(--fg); font:inherit; font-size:16px; text-align:center;
+    font-variant-numeric:tabular-nums}
+  #touchBar .tbF-a input{inline-size:48px}
+  #touchBar .tbF input::placeholder{color:var(--fg3); opacity:.9}
+  #touchBar .tbF:focus-within{border-color:var(--ac); box-shadow:var(--focus)}
+  #touchBar .tbA{flex:none; display:inline-flex; border:1px solid var(--fldbd);
+    border-radius:var(--r-pill); overflow:hidden}
+  #touchBar .tbA button{min-inline-size:40px; block-size:44px; padding:0 var(--s-3);
+    background:var(--bg4); color:var(--fg2); border:0; border-inline-start:1px solid var(--fldbd);
+    font:inherit; font-size:12px; touch-action:manipulation}
+  #touchBar .tbA button:first-child{border-inline-start:0}
+  #touchBar .tbA button[aria-checked="true"]{background:var(--acq); color:var(--acf)}
+  #touchBar .tbGo{flex:none; min-inline-size:56px; block-size:44px; padding:0 var(--s-8);
+    background:var(--ac); color:var(--acon); border:0; border-radius:var(--r-pill);
+    font:inherit; font-size:14px; font-weight:600; touch-action:manipulation}
+}
+
+/* ─── العدسة ─── فوق الإصبع أثناء اللمس (canvas.js · paintLoupe) */
+#loupe{position:absolute; inset-block-start:0; inset-inline-start:0;
+  inline-size:116px; block-size:116px; border-radius:50%;
+  border:2px solid var(--ac); box-shadow:var(--sh3);
+  background:var(--bg); pointer-events:none; z-index:var(--z-fab);
+  display:none}
+#loupe.on{display:block}
+
+
+/* ═══ المرحلة ٣ · تقليلُ الزحام على الهاتف ═══ */
+
+/* ─── أربعةُ تبويبات + «المزيد» ─── (ribbon/render.js · PHONE_TABS)
+   الحاسوبُ لا يرى «المزيد» ولا قائمته، والتبويباتُ الثانويةُ ظاهرةٌ عنده. */
+#rbMoreTab, #rbMoreMenu{display:none}
+@media (max-width:768px), (max-height:500px) and (orientation:landscape) and (pointer:coarse){
+  #rbTabs{position:relative; overflow:visible}
+  #rbTabs .rbTab.sec{display:none}
+  /* وضعُ المبتدئ ينتقل إلى «المزيد»: زرٌّ أقلّ في صفٍّ لا يتّسع */
+  #rbTabs #rbMode{display:none}
+  #rbMoreTab{
+    display:flex; flex:1; align-items:center; justify-content:center; gap:var(--s-3);
+    padding:10px 6px; font:inherit; font-size:12px;
+    background:transparent; color:var(--fg2); border:0; cursor:pointer;
+    touch-action:manipulation;
+  }
+  #rbMoreTab.on, #rbMoreTab[aria-expanded="true"]{color:var(--acf); background:var(--acq)}
+  #rbMoreTab .cv{font-size:10px; transition:transform var(--t-fast)}
+  #rbMoreTab[aria-expanded="true"] .cv{transform:rotate(180deg)}
+  /* القائمةُ تفتح **للأعلى**: الشريطُ أسفلَ الشاشة */
+  #rbMoreMenu{
+    position:absolute; inset-block-end:calc(100% + var(--s-4)); inset-inline-end:var(--s-4);
+    z-index:var(--z-ribbon);
+    min-inline-size:180px; padding:var(--s-4);
+    flex-direction:column; gap:var(--s-2,2px);
+    background:var(--bg2); border:1px solid var(--ln2); border-radius:var(--r3);
+    box-shadow:var(--sh3),var(--edge);
+  }
+  #rbMoreMenu:not([hidden]){display:flex}
+  #rbMoreMenu button{
+    min-block-size:44px; padding:0 var(--s-10); text-align:start;
+    background:transparent; color:var(--fg); border:0; border-radius:var(--r2,8px);
+    font:inherit; font-size:14px; cursor:pointer; touch-action:manipulation;
+  }
+  #rbMoreMenu button:active{background:var(--hov)}
+  #rbMoreMenu .mmSep{block-size:1px; background:var(--ln2); margin-block:var(--s-3)}
+  #rbMoreMenu .mmBeg{color:var(--fg2); font-size:13px}
+}
+/* الهاتفُ الأفقيّ: الشريطُ أعلى الشاشة، فالقائمةُ تفتح للأسفل */
+@media (max-height:500px) and (orientation:landscape) and (pointer:coarse){
+  #rbMoreMenu{inset-block-end:auto; inset-block-start:calc(100% + var(--s-4))}
+}
+
+/* ─── الجولة لا تركب أزرارَ الرسم ─── في وضع الرسم تصعد إلى أعلى الشاشة */
+@media (max-width:768px){
+  #tour{inset-inline:var(--s-6); width:auto; bottom:calc(var(--stageBot,var(--rbH,64px)) + 76px)}
+  html.cdDraw #tour{bottom:auto; inset-block-start:calc(env(safe-area-inset-top,0px) + var(--s-6))}
+}
+
+/* ─── زرُّ المساعدة يُسحَب ─── (ui/fabdrag.js) موضعٌ محفوظٌ بمتغيّرين
+   يغلبان الموضعَ الافتراضيّ؛ وأثناء الرسم يختفي (قسم المرحلة ٢). */
+body .hb-fab.moved{
+  inset-inline-end:auto; bottom:auto;
+  inset-inline-start:var(--fabX); inset-block-start:var(--fabY);
+  touch-action:none;
+}
+body .hb-fab.dragging{transition:none; opacity:.85}
+
+
+/* ═══ المرحلة ٥ · مساعداتُ الرسم (⚙) ═══ (ui/touchbar.js · AIDS)
+   لوحةٌ فوق الأزرار تُعيد ما أخفاه وضعُ الرسم: الالتقاط · التعامد ·
+   القطبيّ · الشبكة · خطوة الشبكة · ملاءمة العرض. */
+@media (pointer:coarse), (max-width:768px){
+  #touchBar .tbPop{
+    display:flex; flex-wrap:wrap; gap:var(--s-4); justify-content:center;
+    padding-block-end:var(--s-4); border-block-end:1px solid var(--ln2);
+  }
+  #touchBar .tbPop button{
+    min-block-size:44px; padding:0 var(--s-8);
+    background:var(--bg4); color:var(--fg2);
+    border:1px solid var(--fldbd); border-radius:var(--r-pill);
+    font:inherit; font-size:13px; touch-action:manipulation;
+  }
+  #touchBar .tbPop button[aria-pressed="true"]{background:var(--acq); color:var(--acf); border-color:var(--acb)}
+  #touchBar .tbPop .tbFit{color:var(--fg)}
+  #touchBar .tb-aids[aria-expanded="true"]{background:var(--hov)}
+}
+
+
+/* ═══ المرحلة ٧ · صقلُ وضع الرسم ═══ */
+
+/* ─── «آخرُ طول» ─── زرٌّ في صفّ القياس (ui/touchbar.js · LASTLEN) */
+#touchBar .tbLast{flex:none; min-inline-size:56px; block-size:44px; padding:0 var(--s-6);
+  background:var(--bg4); color:var(--fg); border:1px solid var(--fldbd); border-radius:var(--r-pill);
+  font:inherit; font-size:13px; font-variant-numeric:tabular-nums; touch-action:manipulation}
+#touchBar .tbLast span{font-weight:600}
+
+/* ─── الهاتفُ الأفقيّ: الأزرارُ عمودٌ على حافّة الإبهام ───
+   صفّان أسفلَ شاشةٍ ارتفاعُها ٤١٢ يأكلان ثلثَها. فالشريطُ يصير عموداً
+   على جهة البدء (يمين الصفحة العربية — تحت الإبهام الأيمن)، وحقلا القياس
+   فوق الأزرار داخله، والبطاقةُ المطويّةُ تصعد إلى أعلى اللوح. */
+@media (max-height:500px) and (orientation:landscape) and (pointer:coarse){
+  html.cdDraw #touchBar{
+    inset-inline-start:var(--s-6); inset-inline-end:auto;
+    inset-block-start:var(--s-6); inset-block-end:var(--s-6);
+    margin-inline:0; inline-size:auto; max-inline-size:46vw;
+    justify-content:flex-end; overflow-y:auto; scrollbar-width:none;
+  }
+  html.cdDraw #touchBar::-webkit-scrollbar{display:none}
+  #touchBar .tbB{flex-direction:column; align-items:stretch}
+  #touchBar .tbB button{block-size:44px; flex-direction:row; gap:var(--s-4); justify-content:flex-start}
+  #touchBar .tbM{flex-wrap:wrap; overflow-x:visible; justify-content:flex-start}
+  #touchBar .tbA{order:5}
+  html.cdDraw #optbar, html.cdDraw.cdMeas #optbar{inset-block-end:auto; inset-block-start:var(--s-6)}
+}
+
+
+/* ═══ المرحلة ٨ · تقليلُ الزحام ٢ ═══ */
+
+/* ─── شريطُ التحديد ─── (ui/touchbar.js · SEL_ACTS) الشريطُ نفسُه في
+   موضعه نفسِه: عنصرٌ محدَّدٌ بلا أداة ⇒ نقل · نسخ · تدوير · حذف · خصائص · ✕ */
+@media (pointer:coarse), (max-width:768px){
+  html.cdSel #touchBar{
+    position:absolute; inset-inline:0; inset-block-end:var(--s-6);
+    margin-inline:auto; inline-size:max-content; max-inline-size:96vw;
+    z-index:var(--z-fab);
+    display:flex; flex-direction:column; padding:var(--s-5) var(--s-6);
+    border-radius:var(--r3); background:var(--glass); backdrop-filter:blur(10px);
+    border:1px solid var(--ln2); box-shadow:var(--sh3),var(--edge);
+  }
+  html.cdSel #touchBar .tbB{overflow-x:auto; scrollbar-width:none}
+  html.cdSel #touchBar .tbB::-webkit-scrollbar{display:none}
+  html.cdSel #thumb{display:none !important}
+  #touchBar .tb-del b{color:var(--er)}
+}
+
+/* ─── أزرارُ الترويسة ٤٤ بكسلاً ─── كانت ٣٦ لتتّسع الاثنا عشر؛ على الهاتف
+   يبقى ما يُطلب في كلّ جلسة (حفظ · تراجع · إعادة · ملاءمة) بالحجم الصحيح،
+   والباقي في قائمة التطبيق و«المزيد ← إدارة» */
+@media (max-width:768px){
+  #qat button[data-act="fnew"], #qat button[data-act="xOpen"],
+  #qat button[data-act="xPdf"], #qat button[data-act="inspect"],
+  #qat button[data-act="learn"]{display:none}
+  #qat .dv:last-of-type{display:none}
+  #qat button{width:44px; height:44px}
+}
+
+/* ─── السجلُّ تنبيهاً عابراً ─── (ui/toast.js) */
+#toast{display:none}
+@media (max-width:768px), (max-height:500px) and (orientation:landscape) and (pointer:coarse){
+  html:not(.logOpen) #log{display:none !important}
+  #toast{
+    display:block; position:fixed; z-index:var(--z-peek);
+    inset-inline:var(--s-8); margin-inline:auto; inline-size:max-content; max-inline-size:calc(100vw - 24px);
+    inset-block-start:calc(env(safe-area-inset-top,0px) + 58px);
+    padding:var(--s-5) var(--s-10); border-radius:var(--r-pill);
+    background:var(--bg3); color:var(--fg); border:1px solid var(--ln2);
+    box-shadow:var(--sh3); font-size:13px; line-height:1.5; text-align:center;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap; cursor:pointer;
+  }
+  #toast[hidden]{display:none}
+  #toast.t-ok{border-color:var(--ok)}
+  #toast.t-er{border-color:var(--er); color:var(--er)}
+  #toast.t-wr{border-color:var(--wr)}
+  html.cdDraw #toast{inset-block-start:calc(env(safe-area-inset-top,0px) + 56px)}
+}

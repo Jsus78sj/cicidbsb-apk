@@ -1,5 +1,5 @@
 import {addWall} from './walls.js';
-import {edit} from './state.js';
+import {strictEdit as edit} from './strict-edit.js';   /* الفشلُ يُرمى لا يُبلَع (المرحلة ٩) */
 import {drawingCommitPlan,rectangleFromCorners} from './quick-draw.js';
 export function commitQuickRectangle(a,b,options={}){
  const plan=drawingCommitPlan(rectangleFromCorners(a,b)),created=[];

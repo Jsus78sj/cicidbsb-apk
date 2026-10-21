@@ -77,7 +77,7 @@ export function saveBlob(name,data,mime,keepMs){
 
 /* ═══ دورةُ الحياة وزرُّ الرجوع ═══ */
 let lastBack=0;
-export function initNative({onPause}={}){
+export function initNative({onPause,onBack}={}){
  if(!isNative())return false;
  try{document.documentElement.classList.add("native","plat-"+platform())}catch(e){}
  const App=plugin("App");
@@ -85,6 +85,15 @@ export function initNative({onPause}={}){
   try{App.addListener("appStateChange",s=>{ if(s&&!s.isActive&&onPause)onPause() })}catch(e){}
   try{App.addListener("pause",()=>{ onPause&&onPause() })}catch(e){}
   try{App.addListener("backButton",()=>{
+   /* المرحلة ٣ من خطّة الهاتف: الواجهةُ تملك الترتيب (ui/backnav.js) —
+      أداةٌ ثمّ مفتوحٌ ثمّ تحديد. ما عالجته لا يقترب من الخروج. */
+   if(typeof onBack==="function"){
+    let r=null; try{r=onBack()}catch(e){r=null}
+    if(r){lastBack=0; return}
+    const now=Date.now();
+    if(now-lastBack<2000){ try{onPause&&onPause()}catch(e){} App.exitApp&&App.exitApp(); return }
+    lastBack=now; say("in","اضغط رجوع مرّةً أخرى للخروج"); return;
+   }
    /* Escape اصطناعيّ: يُغلق المساعد/القوائم/الأداة الجارية بالترتيب نفسه
       الذي يتبعه الكيبورد (ui/keymap.js). وإن لم يكن شيءٌ مفتوحاً فضغطتان
       خلال ثانيتين تُخرجان (مع حفظٍ قبل الخروج). */
@@ -216,7 +225,18 @@ export function incomingKind(name){
    ما يرسمه، فالاهتزازُ هو ما يقول «وُضعت» و«التقطت». في المتصفّح لا شيء. */
 let HAPT_AT=0;
 export function haptic(kind){
- if(!isNative())return false;
+ /* المرحلة ٧ من خطّة الهاتف: في متصفّح الهاتف (PWA) لا Capacitor —
+    navigator.vibrate بديلٌ أقصر (أندرويد/كروم؛ سفاري يتجاهله بصمت) */
+ if(!isNative()){
+  try{
+   if(typeof navigator==="undefined"||typeof navigator.vibrate!=="function")return false;
+   if(typeof matchMedia==="function"&&!matchMedia("(pointer:coarse)").matches)return false;
+   const now=Date.now();
+   if(now-HAPT_AT<40)return false;
+   HAPT_AT=now;
+   return !!navigator.vibrate(kind==="snap"?14:8);
+  }catch(e){return false}
+ }
  const H=plugin("Haptics");
  if(!H||typeof H.impact!=="function")return false;
  const now=Date.now();

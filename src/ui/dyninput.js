@@ -12,7 +12,6 @@ import {Mx,m3,deg,clamp} from "../core/units.js";
 import {angOf,lenOf} from "../core/coords.js";
 import * as R from "../tools/registry.js";
 import {V,W2S,draw} from "./canvas.js";
-import {UIS} from "./store.js";
 import {HOOK} from "./bus.js";
 import {jrAdd} from "../core/journal.js";
 import {escapeHtml as esc} from "../core/escape.js";
@@ -24,7 +23,7 @@ export const dynOn=()=>!!+S.rb.dyn;
 
 /* ═══ أي حقولٍ تليق بالخطوة الجارية ═══
    الكيان والنصّ والتأكيد لا تقبل إحداثياً، فلا حقولَ لها. */
-function fieldsOf(st){
+export function fieldsOf(st){
  if(!st||st.ent||st.text||st.confirm)return null;
  if(st.ang)return [{k:"a",n:"الزاوية",u:"°"}];
  return R.baseOf()
@@ -84,7 +83,9 @@ export function hideDyn(){
 export function syncDyn(){
  const box=$("#dynBox");
  if(!box)return;
- if(!dynOn()||!R.active()||UIS.clean){hideDyn(); return}
+ /* المرحلة ٢ من خطّة الهاتف: «الشاشة النظيفة» تُخفي القشرةَ لا القياس —
+    كانت تُخفي هذه الحقولَ أيضاً فيصير الوضعُ النظيفُ وضعاً بلا أرقام. */
+ if(!dynOn()||!R.active()){hideDyn(); return}
  const F=fieldsOf(R.step());
  const g=R.T.ghost;
  if(!F||!g){hideDyn(); return}
@@ -100,19 +101,25 @@ const val=i=>{
  const el=inp(i);
  return el?String(el.value||"").trim():"";
 };
-function compose(F){
- if(F.length===1&&F[0].k==="a")return val(0);
+/* ═══ التركيب ═══ خالصٌ ومُصدَّر: حقلا الطول والزاوية على الهاتف
+   (ui/touchbar.js · المرحلة ٢) يركّبان بالدالّة نفسِها، فلا يتعلّم
+   المستخدمُ صيغةَ @5<45 ولا يختلف معناها بين الموضعين. */
+export function composeVals(F,V){
+ const v=i=>String((V&&V[i])==null?"":V[i]).trim();
+ if(!F||!F.length)return "";
+ if(F.length===1&&F[0].k==="a")return v(0);
  if(F[0].k==="x"){
-  const x=val(0), y=val(1);
+  const x=v(0), y=v(1);
   if(!x&&!y)return "";
   return `${x||"0"},${y||"0"}`;
  }
- const L=val(0), a=val(1);
+ const L=v(0), a=v(1);
  if(L&&a)return `@${L}<${a}`;
  if(L)return L;                 /* الطول على الاتجاه الجاري */
  if(a)return `<${a}`;           /* قفل زاوية */
  return "";
 }
+const compose=F=>composeVals(F,F.map((_,i)=>val(i)));
 function commit(){
  const F=fieldsOf(R.step());
  if(!F)return false;

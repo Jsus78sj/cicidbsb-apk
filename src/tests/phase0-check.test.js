@@ -113,6 +113,7 @@ group('"mistar" لا يظهر إلا في طبقة الترحيل صراحةً',
   "src/core/pricing.js",          // مفتاح تسعيرٍ قديم يُقرأ فقط
   "src/tools/registry.js",        // مفتاح خيارات أدواتٍ قديم يُقرأ فقط
   "src/ui/ribbon/custom.js",      // مفتاح تخصيص الشريط القديم mistar.ribbon يُقرأ فقط
+  "src/platform/index.js",        // امتدادُ ملفٍّ قديم (.mistar) يُقبَل عند فتح ملفٍّ وارد فقط
  ]);
  const leaks=[];
  SRC.forEach((txt,rel)=>{

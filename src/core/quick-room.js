@@ -1,6 +1,6 @@
 import {addWall} from './walls.js';
 import {addArea} from './areas.js';
-import {edit} from './state.js';
+import {strictEdit as edit} from './strict-edit.js';   /* الفشلُ يُرمى لا يُبلَع (المرحلة ٩) */
 import {rectangleFromCorners} from './quick-draw.js';
 
 export function commitQuickRoom(a,b,options={}){

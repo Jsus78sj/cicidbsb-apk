@@ -70,6 +70,7 @@
 .amR:hover{background:var(--hov)}
 .amR.sel{background:var(--acq);box-shadow:inset 2px 0 0 var(--ac)}
 .amR.sel b{color:var(--acf)}
+.amR.nm{cursor:default;color:var(--fg3)}
 .amBody{flex:1;overflow-y:auto;padding:var(--s-6) 0}
 .amBody::-webkit-scrollbar{width:9px}
 .amBody::-webkit-scrollbar-thumb{background:var(--thumb);

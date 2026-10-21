@@ -5,7 +5,7 @@
    ولهذا يبقى #tools في الشجرة مخفيّاً: معالجه هو المرجع. */
 import {CTX} from "./schema.js";
 import {shownRibbon} from "./beginner.js";
-import {buildRibbon,setTab,curTab,setCtx,setMin,syncRibbon,syncRibbonTogs,showKT,invalidateSync,rebuildRibbon} from "./render.js";
+import {buildRibbon,setTab,curTab,setCtx,setMin,syncRibbon,syncRibbonTogs,showKT,invalidateSync,rebuildRibbon,toggleMoreTabs,moreTabsOpen} from "./render.js";
 import {UIS,uiSet,saveUI} from "../store.js";
 import {errMsg} from "../../core/escape.js";
 import "../panels.js";
@@ -244,12 +244,22 @@ export function wireRibbon(){
  if(!rb)return false;
 
  rb.addEventListener("click",e=>{
+  /* «المزيد» على الهاتف: يفتح قائمةَ التبويبات الثانوية؛ وأيُّ نقرةٍ
+     داخلها (تبويبٌ أو وضعُ المبتدئ) تُغلقها بعد تنفيذها */
+  if(e.target.closest("#rbMoreTab")){toggleMoreTabs(); return}
+  if(e.target.closest("#rbMoreMenu"))setTimeout(()=>toggleMoreTabs(false),0);
   const tab=e.target.closest("[data-tab]");
   if(tab){setTab(tab.dataset.tab); saveUI(); return}
   if(e.target.closest("#rbToggle")){setMin(!UIS.ribbonMin);
    saveUI(); dispatchEvent(new Event("resize")); return}
   runItem(e.target.closest("[data-cmd],[data-act],[data-tog]"));
  });
+ /* لمسةٌ خارج قائمة «المزيد» تُغلقها */
+ document.addEventListener("pointerdown",e=>{
+  if(!moreTabsOpen())return;
+  if(e.target.closest&&(e.target.closest("#rbMoreMenu")||e.target.closest("#rbMoreTab")))return;
+  toggleMoreTabs(false);
+ },true);
  /* نقرتان على التبويب النشط تطويان — كما في أوتوكاد */
  rb.addEventListener("dblclick",e=>{
   const tab=e.target.closest("[data-tab]");

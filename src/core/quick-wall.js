@@ -1,5 +1,5 @@
 import {addWall} from './walls.js';
-import {edit} from './state.js';
+import {strictEdit as edit} from './strict-edit.js';   /* الفشلُ يُرمى لا يُبلَع (المرحلة ٩) */
 import {nextPointFromLength} from './quick-draw.js';
 
 export function commitQuickWall(start,length,angleDeg=0,options={}){

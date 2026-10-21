@@ -897,9 +897,11 @@ group("لوحة السجل ولوحة الأوامر",()=>{
  ok(/export const norm/.test(sc)&&/export const toLat/.test(sc)
    &&/export function score/.test(sc),
   "searchcommon.js يملك norm وtoLat وscore");
- ok(/from\s*["']\.\/searchcommon\.js["']/.test(si)
-   &&!/export const norm=/.test(si),
-  "وsearchIndex.js يستوردها ولا يعرّف نسخةً ثانية");
+ /* المرحلة ١ من خطّة الهاتف: searchIndex.js حُذف — قائمةُ التطبيق صارت
+    تسأل فهرسَ اللوحة نفسَه (paletteQuery) فلا فهرسَ ثانٍ ينحرف. */
+ const am1=SRC.get(join(ROOT,"src/ui/appmenu.js"))||"";
+ ok(!si&&/paletteQuery/.test(am1),
+  "وsearchIndex.js محذوف: appmenu.js يبحث بفهرس اللوحة نفسِه");
  ok(/from\s*["']\.\/searchcommon\.js["']/.test(pal),
   "وpalette.js يستوردها لا نسخةً محلّية");
  ok(/toolList\s*\(/.test(pal)&&/\bbegin\s*\(/.test(pal+wr),
@@ -2430,7 +2432,11 @@ group("الجوال — الترويسة لا توسّع الصفحة والشر
  ok(/#top\{[^}]*overflow-x:auto/.test(b)&&/#top\{[^}]*min-width:0/.test(b),
   "#top يُمرَّر داخلياً ولا يفيض (كان يوسّع الإطار إلى ~690px)");
  ok(/#qat button\{[^}]*width:36px/.test(b),"أزرار #qat تنكمش على الجوال");
- ok(/body\{padding-bottom:var\(--rbH/.test(tc),
+ /* المرحلة E صاغت الحجزَ متغيّراً (--bodyPadB) يجمعه padding-bottom مع حافّة
+    الشاشة الآمنة — كان الحارسُ يطلب الصيغةَ القديمة حرفاً فيسقط والحجزُ قائم.
+    الشرطُ نفسُه بصيغتيه: الجسمُ يحجز --rbH، والحجزُ يصل padding-bottom. */
+ ok(/body\{padding-bottom:var\(--rbH/.test(tc)
+   ||(/body\{--bodyPadB:var\(--rbH/.test(tc)&&/padding-bottom:calc\(var\(--bodyPadB/.test(tc)),
   "الجسم يحجز ارتفاع الشريط السفليّ (--rbH) فلا يغطّي سطر الأوامر وشريط الحالة");
  ok(/var\(--rbH/.test(b),"العائمات (المساعد) تعلو الشريط");
  ok(/--rbH/.test(ov)&&/ResizeObserver/.test(ov)&&/setProperty/.test(ov),
@@ -2475,5 +2481,55 @@ group("الواجهة التعليمية — المرحلة ١ (src/ui/learn.js)
  ok(/certSVG\(/.test(L)&&/URL\.revokeObjectURL/.test(L)&&/download="CivilDraft-certificate\.svg"/.test(L),"والشهادةُ تُنزَّل باسمٍ لاتينيّ ويُحرَّر رابطُها");
  ok(/ArrowDown/.test(L)&&/role","region"/.test(L),"والأسهمُ تتنقّل في الخريطة، والمدرّبُ منطقةٌ معلَنة");
  ok(/enterSandbox\(/.test(L)&&/exitSandbox\(/.test(L),"الدرسُ يدخل الصندوق ويخرج منه");
+});
+/* ═══ المرحلة ١ من خطّة الهاتف ═══ الحرسُ السلوكيُّ في touch-phase1.test.js؛
+   هنا البنيويّ: src/ui/touchbar.js وsrc/ui/touchtext.js موصولان. */
+group("الهاتف ١: أزرارُ الرسم ومرشِّحُ الرسائل موصولان",()=>{
+ const tb=SRC.get(join(ROOT,"src/ui/touchbar.js"))||"";
+ const tt=SRC.get(join(ROOT,"src/ui/touchtext.js"))||"";
+ const ap=SRC.get(join(ROOT,"src/app.js"))||"";
+ ok(/export function syncTouchBar/.test(tb)&&/export function runTouch/.test(tb),"touchbar.js يصدّر المزامنةَ والتنفيذ");
+ ok(/R\.cancel\(\)/.test(tb)&&/R\.enter\(\)/.test(tb)&&/R\.feedText\("c"\)/.test(tb),"وينادي مسارَ المفاتيح نفسَه");
+ ok(/export function touchText/.test(tt),"touchtext.js يصدّر المرشِّح");
+ ok(/ui\/touchbar\.js/.test(ap)&&/ui\/touchtext\.js/.test(ap),"وapp.js يستوردهما");
+});
+/* ═══ المرحلة ٣ من خطّة الهاتف ═══ السلوكيُّ في touch-phase3.test.js؛
+   البنيويّ هنا: src/ui/backnav.js وsrc/ui/fabdrag.js موصولان. */
+group("الهاتف ٣: زرُّ الرجوع والزرُّ المسحوب موصولان",()=>{
+ const bn=SRC.get(join(ROOT,"src/ui/backnav.js"))||"";
+ const fd=SRC.get(join(ROOT,"src/ui/fabdrag.js"))||"";
+ const ap=SRC.get(join(ROOT,"src/app.js"))||"";
+ ok(/export function backStep/.test(bn)&&/R\.cancel\(\)/.test(bn),"backStep يُلغي الأداةَ أوّلاً");
+ ok(/export function makeDraggable/.test(fd)&&/export function placeFab/.test(fd),"fabdrag.js يصدّر السحبَ والحصر");
+ ok(/onBack:backStep/.test(ap)&&/makeDraggable\(/.test(ap),"وapp.js يصلهما");
+});
+/* ═══ المرحلة ٨ من خطّة الهاتف ═══ السلوكيُّ في touch-phase8.test.js؛
+   البنيويّ هنا: src/ui/toast.js موصولٌ بالسجلّ. */
+group("الهاتف ٨: التنبيهُ العابر موصول",()=>{
+ const to=SRC.get(join(ROOT,"src/ui/toast.js"))||"";
+ const pr=SRC.get(join(ROOT,"src/ui/props.js"))||"";
+ ok(/export function toast/.test(to)&&/aria-hidden/.test(to),"toast.js يصدّر التنبيهَ مخفيّاً عن قارئ الشاشة");
+ ok(/from "\.\/toast\.js"/.test(pr)&&/toast\(cls,/.test(pr),"وrep() في props.js يرسل إليه");
+});
+/* ═══ المرحلة ٩ من خطّة الهاتف: الأدواتُ السريعةُ والمعالج ═══
+   كانت سبعةُ ملفّاتٍ في مجلّداتٍ يحرسها dom.js بلا ذكرٍ هنا (cover.js).
+   السلوكيُّ في *-registration.test.js وguided-room*.test.js؛ وهنا البنية:
+   كلُّ أداةٍ تسجَّل بمعرّفها، والواجهةُ تبني حوارَها بلا HTML خامٍ مجهول،
+   والفعلُ يمرّ بالالتزام الحقيقيّ. */
+group("الهاتف ٩: الأدواتُ السريعةُ ومعالجُ الغرفة",()=>{
+ const T={"src/tools/quickwall.js":"quickwall","src/tools/quickdraw.js":"quickrect",
+  "src/tools/quickroom.js":"quickroom","src/tools/quickopening.js":"quickopening",
+  "src/tools/guidedroom.js":"guidedroom"};
+ Object.entries(T).forEach(([f,id])=>{
+  const t=SRC.get(join(ROOT,f))||"";
+  ok(/defTool\(\{/.test(t)&&t.includes(`id:'${id}'`),`${f}: يسجّل «${id}»`);
+ });
+ const ui=SRC.get(join(ROOT,"src/ui/guidedroom.js"))||"";
+ ok(/export function createGuidedRoomUI/.test(ui)&&/role','dialog'/.test(ui)&&/aria-modal','true'/.test(ui),
+  "src/ui/guidedroom.js: حوارٌ معلَنٌ لقارئ الشاشة");
+ ok(/from '\.\.\/core\/guided-room-wizard\.js'/.test(ui),"ويمرّ بمنطق المعالج الخالص");
+ const ac=SRC.get(join(ROOT,"src/ui/guidedroom-action.js"))||"";
+ ok(/export function openGuidedRoom/.test(ac)&&/commitGuidedRoom\(/.test(ac),
+  "src/ui/guidedroom-action.js: الالتزامُ الحقيقيّ commitGuidedRoom");
 });
 process.exit(summary()?1:0);

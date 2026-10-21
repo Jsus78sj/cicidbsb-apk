@@ -5,6 +5,7 @@ import {SIZES,applySize} from "../tools/presets.js";
 import {paletteIsOpen} from "./palette.js";
 import {HOOK} from "./bus.js";
 import {escapeHtml as esc} from "../core/escape.js";
+import {isPhone} from "./store.js";
 
 /* ═══ هجرة المفتاح من الاسم القديم — دفعة 3.9 ═══
    نُسيت هذه الوحدة في دفعات الهجرة السابقة (ai/net.js, ui/store.js,
@@ -44,6 +45,25 @@ const STEPS=[
  {t:"٧ · اللمس",s:"على تابلت أو جوال: قرصة بإصبعين للتكبير، وسحب بإصبعين للتحريك، وضغطٌ مطوّل لقائمة السياق. زر ☰ أسفل الشاشة يفتح لوحة الخصائص."},
  {t:"جاهز",s:"كده تمام! <b>F1</b> للمساعدة · <b>Ctrl+Z</b> يرجّع اللي فات · <b>Ctrl+S</b> يحفظ. وارتاح: شغلك بيتحفظ لوحده."}
 ];
+/* ═══ جولةُ الهاتف: ثلاثُ خطوات ═══ المرحلة ٣ من خطّة الهاتف
+   تسعُ خطواتٍ تذكر F7 وCtrl+K وCtrl+S لا تصلح لهاتفٍ بلا لوحة مفاتيح،
+   ومن يفتح التطبيق على هاتفه يريد أن يرسم لا أن يقرأ. فعلى الهاتف:
+   **جدار ← باب ← حفظ**، وكلُّ خطوةٍ تُفعِّل أداتَها وتتقدّم وحدها حين
+   تتمّ. والحفظُ زرٌّ في البطاقة نفسِها (act) لا اختصارٌ يُحفَظ. */
+const xSave=()=>{const b=$("#xSave"); if(b)b.click()};
+export const STEPS_PHONE=[
+ {t:"١ · ارسم جداراً",s:"المس نقطةَ البداية، اسحب إصبعك، ثمّ <b>ارفعه</b> فتُثبَّت النقطة. "
+  +"كرّر للجدار التالي، أو اكتب الطولَ في حقل «الطول» واضغط «طبّق». و<b>✓</b> ينهي.",
+  go(){setOpt("wall","t","0.20");begin("wall")},ok(){return S.walls.length>=2}},
+ {t:"٢ · ضع باباً",s:"فعّلتُ «باب غرفة» ٠٫٩٠ م. المس جداراً وارفع إصبعك. و<b>✕</b> يُنهي الأداة.",
+  go(){cancel(true);const p=size("s.door.room");if(p)applySize(p);else begin("door")},
+  ok(){return S.opens.some(o=>/^(door|double|sliding)$/.test(o.kind))}},
+ {t:"٣ · احفظ",s:"عملُك يُحفَظ على الجهاز وحده كلّ لحظة. ولنسخةٍ ملفّاً تنقلها أو ترسلها: "
+  +"«احفظ ملفّاً» هنا، أو لاحقاً من «المزيد ← إدارة».",
+  go(){cancel(true)},act:{n:"احفظ ملفّاً",fn:xSave}}
+];
+let CUR=STEPS;
+const steps=()=>CUR;
 let I=-1,TM=null;
 const stop=()=>{if(TM){clearInterval(TM);TM=null}};
 export function tourEnd(q){
@@ -51,24 +71,24 @@ export function tourEnd(q){
  if(!q)HOOK.report("in","انتهت الجولة — Ctrl+K لكل شيء");
 }
 function watch(){
- stop();const st=STEPS[I];if(!st?.ok)return;
+ stop();const st=steps()[I];if(!st?.ok)return;
  TM=setInterval(()=>{let done=false;try{done=!!st.ok()}catch(e){}
   if(done)go(I+1,1)},400);
 }
 function render(){
- const B=$("#tour"),st=STEPS[I];if(!B||!st)return;
+ const B=$("#tour"),st=steps()[I];if(!B||!st)return;
  B.innerHTML=`<div class="tc" role="note"><div class="th"><b>${esc(st.t)}</b>
-  <span class="tn">${I+1} من ${STEPS.length}</span></div><div class="tb">${st.s}</div>
-  <div class="tf"><button data-t="next">${I+1<STEPS.length?(st.ok?"تخطّ هذه":"التالي"):"تمّ"}</button>
+  <span class="tn">${I+1} من ${steps().length}</span></div><div class="tb">${st.s}</div>
+  <div class="tf">${st.act?`<button data-t="act">${esc(st.act.n)}</button>`:""}<button data-t="next"${st.act?' class="gh"':""}>${I+1<steps().length?(st.ok?"تخطّ هذه":"التالي"):"تمّ"}</button>
   <button data-t="end" class="gh">أنهِ الجولة</button></div></div>`;
  B.hidden=false;
 }
 function go(i,auto){
- stop();if(i>=STEPS.length){tourEnd();return}I=i;const st=STEPS[I];
+ stop();if(i>=steps().length){tourEnd();return}I=i;const st=steps()[I];
  if(st.go){try{st.go()}catch(e){HOOK.report("wr",e.message)}}
  render();if(auto)HOOK.report("ok","تمّت الخطوة");HOOK.prompt();watch();
 }
-export function tourStart(){go(0)}
+export function tourStart(full){CUR=(!full&&isPhone())?STEPS_PHONE:STEPS; go(0)}
 export const tourActive=()=>I>=0;
 export function tourMaybe(safe,had){
  if(safe||had||seen()||S.walls.length||S.areas.length)return false;
@@ -78,6 +98,11 @@ export function wireTour(){
  const B=$("#tour");if(!B)return;B.hidden=true;
  B.addEventListener("click",e=>{
   const b=e.target.closest("[data-t]");if(!b)return;
-  if(b.dataset.t==="end")tourEnd();else go(I+1);
+  if(b.dataset.t==="end")tourEnd();
+  else if(b.dataset.t==="act"){
+   const st=steps()[I];
+   try{st&&st.act&&st.act.fn()}catch(e){HOOK.report("wr",e.message)}
+   go(I+1);
+  }else go(I+1);
  });
 }

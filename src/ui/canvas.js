@@ -136,10 +136,20 @@ export const snapMode=()=>{
 };
 /* from: أساسُ الالتقاط (عمودي · موازٍ · ولا يُلتقَط هو) · cfrom: أساسُ
    التقييد بالتعامد/القطبي والأقفال — null لخطوات box:1 */
+/* ═══ الإصبعُ أعرضُ من المؤشّر ═══ المرحلة ١ من خطّة الهاتف
+   hitTest كان يكبر على اللمس (٢٢ لا ١٤) بينما الالتقاطُ (osnap) وإبرازُ
+   المرشَّح قبل النقر بقيا بمقاس الفأرة (١٦ و١٤). فكانت النقرةُ تلتقط
+   عنصراً لم يُبرَز، وطرفُ الجدار يفلت من إصبعٍ عرضُه ٤٠ بكسلاً.
+   مصدرٌ واحدٌ للنطاقات الثلاثة الآن، يُسأل عند كلّ استعمال (لوحٌ يُوصَل
+   بفأرةٍ وسط الجلسة يعود إلى مقاس المؤشّر). */
+const coarse=()=>{try{return typeof matchMedia==="function"
+ &&matchMedia("(pointer:coarse)").matches}catch(_){return false}};
+export const TOL={snap:[16,28],pick:[14,22],grip:[8,22]};
+export const tolPx=k=>TOL[k][coarse()?1:0];
 export function snap(x,y,from,cfrom=from){
  UI.guides=[]; UI.osnap=null; UI.track=null;
  const st=Math.max(1,S.meta.snap);
- const tol=16/V.k;
+ const tol=tolPx("snap")/V.k;
  if(+S.rb.snap&&osOn()){
   const o=osnap(x,y,tol,from);
   if(o){UI.osnap=o;return o.p}
@@ -177,7 +187,7 @@ export function snap(x,y,from,cfrom=from){
  return p;
 }
 /* ═══ التحديد — يُفوّض إلى ents ═══ */
-export const hitTest=(x,y,kinds)=>E.hitTest(x,y,(matchMedia('(pointer:coarse)').matches?22:14)/V.k,kinds);
+export const hitTest=(x,y,kinds)=>E.hitTest(x,y,tolPx("pick")/V.k,kinds);
 /* موضعٌ تمثيليّ للكيان — لتثبيت البطاقات قربه */
 export function shapeOfSel(s){
  const poly=E.outlineOf(s);
@@ -239,7 +249,7 @@ export function rebuildGrips(){
  UI.SELS.forEach(s=>E.gripsOf(s).forEach(g=>UI.grips.push({...g,s})));
 }
 export function gripAt(px,py){
- let best=null,bd=matchMedia('(pointer:coarse)').matches?14:8;
+ let best=null,bd=tolPx("grip");
  UI.grips.forEach(g=>{
   const q=W2S(g.p[0],g.p[1]);
   const d=Math.hypot(q[0]-px,q[1]-py);
@@ -888,14 +898,89 @@ function publishAlt(){
 export const canvasAltText=()=>{
  try{return altSummary()}catch(e){return ""}
 };
+/* ═══ المرحلة ٦ من خطّة الهاتف: طبقةُ المخطّط المحفوظة ═══
+   كان كلُّ إطارٍ يرسم المخطّطَ كاملاً — مع كلّ حركةِ إصبعٍ أو فأرة —
+   والذي تغيّر فعلاً شبحٌ وعلامةُ التقاط. الآن ينقسم الإطارُ قسمين:
+     الثابت  الخلفيّة · الصورة المرجعية · الشبكة · المشهد · المسارات ·
+             الأطراف · المقارنة — يُرسَم ثم يُنسَخ إلى LAYER
+     الحيّ   شبحُ الكتلة · الإبراز · المقابض والتحديد · المعاينة · المقياس
+   draw()   = إطارٌ كامل (كلُّ مَن لا يعرف ما تغيّر — الأمانُ هو الافتراض)
+   drawFx() = «لم يتغيّر إلا الحيّ»: يُنسخ LAYER ويُرسم الحيُّ فوقه، بشرط
+              أن تطابق بصمتُه المنظرَ الحاليّ وإلّا عاد كاملاً. لا يناديه
+              إلّا مسارُ الحركة الساخن (onMove والعدسة).
+   وأثناء القرص والسحب بإصبعين (GEST): تُرسَم الطبقةُ نفسُها محوَّلةً
+   بالمقياس والإزاحة بلا مشهدٍ ولا حيّ، ويعود الإطارُ كاملاً عند الرفع. */
+let WANT=0, LAYER=null, LKEY=null, GEST=null;
+export const LSTAT={full:0,fx:0,gest:0};
+const lkey=()=>[V.k,V.cx,V.cy,V.w,V.h,V.dpr,themeName(),+S.rb.grid,+S.rb.paths].join("|");
+function layerSave(){
+ try{
+  if(!LAYER){
+   if(typeof OffscreenCanvas==="function")LAYER=new OffscreenCanvas(cv.width||1,cv.height||1);
+   else if(document.createElement)LAYER=document.createElement("canvas");
+  }
+  if(!LAYER)return;
+  if(LAYER.width!==cv.width)LAYER.width=cv.width;
+  if(LAYER.height!==cv.height)LAYER.height=cv.height;
+  const g=LAYER.getContext("2d"); if(!g)return;
+  g.setTransform(1,0,0,1,0,0);
+  g.clearRect(0,0,LAYER.width,LAYER.height);
+  g.drawImage(cv,0,0);
+  LKEY=lkey();
+ }catch(_){LKEY=null}
+}
+const layerOk=()=>!!LAYER&&LKEY===lkey();
+function blit(a,e,f){
+ ctx.save();
+ ctx.setTransform(1,0,0,1,0,0);
+ if(a!==1||e||f){
+  ctx.fillStyle=pal().bg; ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.setTransform(a,0,0,a,e,f);
+ }
+ ctx.drawImage(LAYER,0,0);
+ ctx.restore();
+}
+/* القرص: المنظرُ عند البدء (k0,cx0,cy0) والآن (k1,cx1,cy1) ⇒
+   sx1 = W/2 + (cx0-cx1)k1 + (sx0-W/2)s · sy1 = H/2 − (cy0-cy1)k1 + (sy0-H/2)s */
+export function gestXf(g,v){
+ const sc=v.k/g.k;
+ return {a:sc,
+  e:(v.w/2+(g.cx-v.cx)*v.k-v.w/2*sc)*v.dpr,
+  f:(v.h/2-(g.cy-v.cy)*v.k-v.h/2*sc)*v.dpr};
+}
+export function gestStart(){
+ GEST=layerOk()?{k:V.k,cx:V.cx,cy:V.cy}:null;
+ return !!GEST;
+}
+export function gestEnd(){
+ if(!GEST)return false;
+ GEST=null; draw(); return true;
+}
+export function drawFx(){
+ if(WANT<1)WANT=1;
+ frame();
+}
 export function draw(){
+ WANT=2;
+ frame();
+}
+function frame(){
  bump("frame");
  if(RQ)return;
  RQ=true;
  requestAnimationFrame(()=>{
   RQ=false;
+  const want=WANT; WANT=0;
   const t0=performance.now();
-  paintAll();
+  if(GEST&&LAYER){
+   const x=gestXf(GEST,V);
+   blit(x.a,x.e,x.f); LSTAT.gest++;
+  }else if(want===1&&layerOk()){
+   blit(1,0,0); paintLive(); LSTAT.fx++;
+  }else{
+   paintStatic(); layerSave(); paintLive(); LSTAT.full++;
+  }
+  paintLoupe();
   publishAlt();
   const ms=performance.now()-t0;
   /* التحذير فقط حين القياس مفعّلٌ (bumpMs تعيد true مُطفأةً) */
@@ -903,7 +988,7 @@ export function draw(){
    console.warn(`[CivilDraft] frame ${ms.toFixed(1)}ms >16ms`);
  });
 }
-function paintAll(){
+function paintStatic(){
  const P=pal();
  ctx.clearRect(0,0,V.w,V.h);
  ctx.fillStyle=P.bg; ctx.fillRect(0,0,V.w,V.h);
@@ -919,11 +1004,13 @@ function paintAll(){
   return;
  }
  paint(sc.P);
- const bg=blockGhost();
- if(bg)drawInstance(ctx,bg,p=>W2S(p[0],p[1]),{ghost:true});
  if(+S.rb.paths)drawPaths();
  drawEnds();
  drawCompare();          /* عرضٌ محض — خارج المشهد فلا يُصدَّر */
+}
+function paintLive(){
+ const bg=blockGhost();
+ if(bg)drawInstance(ctx,bg,p=>W2S(p[0],p[1]),{ghost:true});
  drawPre();
  rebuildGrips();
  drawSel();
@@ -1065,7 +1152,7 @@ function onMove(e){
  if(drag&&drag.marq){
   const p=snap(raw[0],raw[1],null);
   UI.marq={a:drag.a,b:p,win:p[0]>=drag.a[0]};
-  draw(); return;
+  drawFx(); return;
  }
  if(drag&&drag.grip){
   const base=/^(mid|c|p|L|base)$/.test(drag.grip.k)
@@ -1110,12 +1197,14 @@ function onMove(e){
   /* المُبرَز هو ما ستلتقطه النقرة: نوعُ الخطوة (وبدائله) قبل غيره */
   if(st&&st.ent){
    const ks=(st.ent===1)?null:[st.ent].concat(Object.keys(st.entVia||{}));
-   UI.pre=(ks&&E.hitTest(raw[0],raw[1],14/V.k,ks))
-    ||E.hitTest(raw[0],raw[1],14/V.k);
+   const pt=tolPx("pick")/V.k;   /* نطاقُ النقرة نفسُه: المُبرَزُ هو ما يُلتقَط */
+   UI.pre=(ks&&E.hitTest(raw[0],raw[1],pt,ks))
+    ||E.hitTest(raw[0],raw[1],pt);
   }
   R.T.hover=[raw[0],raw[1]];
   R.T.ghost=snap(raw[0],raw[1],R.osBase(),R.snapBase());
-  HOOK.prompt(); draw(); return;
+  /* المسارُ الأسخن: لا مشهدَ يتغيّر هنا — شبحٌ وإبرازٌ فقط */
+  HOOK.promptSoon(); drawFx(); return;
  }
  UI.hov=gripAt(e.offsetX,e.offsetY);
  if(!UI.hov)UI.pre=hitTest(raw[0],raw[1]);
@@ -1123,7 +1212,7 @@ function onMove(e){
  snap(raw[0],raw[1],null);
  cv.style.cursor=NAV.mode?(NAV.mode==="pan"?"grab":"crosshair")
   :(UI.hov?"pointer":(UI.pre?"pointer":"crosshair"));
- draw();
+ drawFx();
 }
 function onUp(){
  if(drag&&drag.zwin){
@@ -1182,6 +1271,93 @@ addEventListener("mouseup",onUp);
    والضغط المطوّل بديلُ الزرّ الأيمن — فلا قائمة سياق بلا فأرة. */
 const PT=new Map();
 let gest=null, lp=null, pend=null;
+/* ═══ المرحلة ٢ من خطّة الهاتف: النقطةُ تُثبَّت عند الرفع ═══
+   كانت النقطةُ تقع حيث **لمس** الإصبع (بعد مهلة القرصة) — والإصبعُ
+   يغطّي الموضعَ نفسَه، فلا تصحيحَ ممكناً: كلُّ خطأٍ ملّيمتريّ تراجعٌ ثم
+   إعادة. الآن، والأداةُ فعّالة: اللمسُ يُظهر الشبحَ والعدسة، والسحبُ
+   يضبطه (والالتقاطُ يعمل كما بالفأرة)، والرفعُ يثبّته. وإصبعٌ ثانٍ قبل
+   الرفع قرصةٌ تُلغي النقطةَ كلّياً، وpointercancel لا يضع شيئاً.
+   ووضعُ التحديد (بلا أداة) لم يتغيّر: النقرُ والسحبُ والضغطُ المطوّل. */
+let lift=null;
+const liftable=()=>{
+ if(!R.active()||NAV.mode)return false;
+ const st=R.step();
+ return !(st&&st.freehand);            /* الرسمُ الحرّ سحبٌ لا نقطة */
+};
+const asEv=e=>({button:0,offsetX:e.offsetX,offsetY:e.offsetY,
+ clientX:e.clientX,clientY:e.clientY,pointerType:e.pointerType||"touch",
+ pointerId:e.pointerId,shiftKey:false,preventDefault(){}});
+/* ═══ نقرةٌ بإصبعين = تراجع ═══ إصبعان يلمسان ويُرفعان سريعاً بلا قرصٍ
+   ولا سحب — الإيماءةُ نفسُها في تطبيقات الرسم الشائعة. */
+let tap2=null;
+const TAP2_MS=300, TAP2_PX=12;
+/* ═══ العدسة ═══ دائرةٌ فوق الإصبع تكبّر ما تحته مرّتين، ومركزُها
+   الشبحُ الملتقَط لا الإصبعُ الخام: فما تراه في العدسة هو ما يقع عند
+   الرفع. نسخُ بكسلاتٍ من اللوح نفسِه بعد رسمه (paintLoupe في draw)،
+   فلا رسمَ ثانٍ ولا كلفةَ تُذكَر. */
+export const LOUPE={on:false,x:0,y:0,R:58,Z:2};
+let loupeEl=null;
+function loupeNode(){
+ if(loupeEl)return loupeEl;
+ try{
+  const host=cv.parentNode; if(!host||!document.createElement)return null;
+  const c=document.createElement("canvas");
+  c.id="loupe"; c.setAttribute("aria-hidden","true");
+  host.appendChild(c); loupeEl=c;
+ }catch(_){loupeEl=null}
+ return loupeEl;
+}
+/* «نهاية · ٣٫٢٥٠ م»: الالتقاطُ إن وُجد، والطولُ من الأساس إن وُجد */
+export function loupeTag(){
+ const o=UI.osnap, b=R.active()?R.baseOf():null, g=R.T.ghost;
+ const parts=[];
+ if(o&&MNAME[o.m])parts.push(MNAME[o.m]);
+ if(b&&g){const L=Math.hypot(g[0]-b[0],g[1]-b[1]); if(L>0)parts.push((L/1000).toFixed(3)+" م")}
+ return parts.join(" · ");
+}
+export function loupeAt(x,y){LOUPE.on=true; LOUPE.x=x; LOUPE.y=y; drawFx()}
+export function loupeOff(){
+ if(!LOUPE.on)return;
+ LOUPE.on=false;
+ if(loupeEl&&loupeEl.classList)loupeEl.classList.remove("on");
+}
+function paintLoupe(){
+ if(!LOUPE.on)return;
+ const c=loupeNode(); if(!c||!c.getContext)return;
+ const d=V.dpr||1, Rr=LOUPE.R, Z=LOUPE.Z, D=Rr*2;
+ if(c.width!==Math.round(D*d)){c.width=Math.round(D*d); c.height=Math.round(D*d)}
+ const g=c.getContext("2d"); if(!g)return;
+ /* المركز: الشبحُ الملتقَط إن وُجد، وإلّا الإصبع */
+ let cx=LOUPE.x, cy=LOUPE.y;
+ if(R.T.ghost){const q=W2S(R.T.ghost[0],R.T.ghost[1]); cx=q[0]; cy=q[1]}
+ const sw=D/Z;
+ try{
+  g.setTransform(1,0,0,1,0,0);
+  g.clearRect(0,0,c.width,c.height);
+  g.drawImage(cv,(cx-sw/2)*d,(cy-sw/2)*d,sw*d,sw*d,0,0,c.width,c.height);
+  g.setTransform(d,0,0,d,0,0);
+  {const P=pal(); g.strokeStyle=UI.osnap?P.snap:P.ghost} g.lineWidth=1.5;
+  g.beginPath(); g.moveTo(Rr-9,Rr); g.lineTo(Rr+9,Rr); g.moveTo(Rr,Rr-9); g.lineTo(Rr,Rr+9); g.stroke();
+  /* المرحلة ٧: العدسةُ تسمّي ما تُظهره — نوعُ الالتقاط والطولُ الحيّ */
+  const tag=loupeTag();
+  if(tag&&g.fillText){
+   const P=pal();
+   g.font="600 11px Tahoma, sans-serif"; g.direction="rtl";
+   g.textAlign="center"; g.textBaseline="middle";
+   const tw=Math.min(D-16,(g.measureText?g.measureText(tag).width:tag.length*6)+14);
+   g.fillStyle=P.bg; g.globalAlpha=.88;
+   g.fillRect(Rr-tw/2,D-26,tw,17);
+   g.globalAlpha=1; g.fillStyle=UI.osnap?P.snap:P.ghost;
+   g.fillText(tag,Rr,D-17.5);
+  }
+ }catch(_){}
+ /* فوق الإصبع؛ وإن ضاق الأعلى فإلى الجانب */
+ let lx=LOUPE.x-Rr, ly=LOUPE.y-Rr*2-44;
+ if(ly<4){ly=Math.max(4,LOUPE.y-Rr); lx=LOUPE.x+(LOUPE.x>V.w/2?-(D+40):40)}
+ lx=Math.max(4,Math.min(lx,V.w-D-4));
+ c.style.transform=`translate(${Math.round(lx)}px,${Math.round(ly)}px)`;
+ if(c.classList)c.classList.add("on");
+}
 const pdist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const pmid=(a,b)=>[(a.x+b.x)/2,(a.y+b.y)/2];
 /* سقف تمييز النقرة عن بداية القرصة — انظر التعليق فوق pointerdown */
@@ -1218,6 +1394,12 @@ cv.addEventListener("pointerdown",e=>{
      تغيّر بالفعل. مهلةٌ قصيرة هنا تنتظر إصبعاً ثانياً محتملاً قبل
      الالتزام بالنقرة؛ ولو رُفع الإصبع أسرع من المهلة (نقرةٌ حقيقية)
      يُنفَّذ onDown فوراً من ptEnd أدناه فلا تأخير محسوس. */
+  if(liftable()){
+   /* الأداةُ فعّالة: لا نقطةَ الآن — شبحٌ وعدسةٌ، والرفعُ يثبّت */
+   lift={id:e.pointerId,e:asEv(e)};
+   onMove(e); loupeAt(e.offsetX,e.offsetY);
+   return;
+  }
   pend={id:e.pointerId,e,t:setTimeout(()=>{
    pend=null;
    if(!R.active())lpStart(e);
@@ -1227,11 +1409,15 @@ cv.addEventListener("pointerdown",e=>{
  }
  if(PT.size===2){
   if(pend){clearTimeout(pend.t); pend=null}  /* قرصةٌ فعلاً: تُلغى النقرة المعلَّقة كلياً */
+  if(lift){lift=null; loupeOff()}            /* وكذلك النقطةُ المعلَّقة للرفع */
   lpClear();
   abortDrag();
   const [a,b]=[...PT.values()];
   gest={d:pdist(a,b), k:V.k, m:pmid(a,b)};
+  tap2={t:Date.now(), d:gest.d, m:gest.m, moved:false};
+  gestStart();       /* القرصُ يحرّك الصورةَ المحفوظة لا المشهد */
  }
+ if(PT.size>2)tap2=null;
 },{passive:false});
 
 cv.addEventListener("pointermove",e=>{
@@ -1246,6 +1432,8 @@ cv.addEventListener("pointermove",e=>{
   const d=pdist(a,b), m=pmid(a,b);
   /* نسبةٌ مطلقة من بداية الإيماءة لا تراكمية: القرص ثم الفتح
      يعود إلى المقياس نفسه بلا انجراف */
+  if(tap2&&(Math.abs(d-tap2.d)>TAP2_PX
+     ||Math.hypot(m[0]-tap2.m[0],m[1]-tap2.m[1])>TAP2_PX))tap2.moved=true;
   if(gest.d>8&&d>8){
    const f=(d/gest.d)*(gest.k/V.k);
    if(f>0.01&&Math.abs(f-1)>1e-4)zoomAt(m[0],m[1],f);
@@ -1255,10 +1443,17 @@ cv.addEventListener("pointermove",e=>{
   return;
  }
  onMove(e);
+ if(lift&&lift.id===e.pointerId){lift.e=asEv(e); loupeAt(e.offsetX,e.offsetY)}
 },{passive:false});
 
 function ptEnd(e){
  if(e.pointerType==="mouse")return;
+ if(lift&&lift.id===e.pointerId){
+  const le=lift.e; lift=null; loupeOff();
+  /* الرفعُ يثبّت — والإلغاءُ من النظام (مكالمة · تمرير) لا يضع شيئاً */
+  if(e.type!=="pointercancel"){onMove(le); onDown(le)}
+  else draw();
+ }
  if(pend&&pend.id===e.pointerId){
   /* رُفع الإصبع قبل انقضاء المهلة — نقرةٌ حقيقية لا قرصة، فتُنفَّذ الآن */
   clearTimeout(pend.t);
@@ -1266,8 +1461,13 @@ function ptEnd(e){
   onDown(pe);
  }
  PT.delete(e.pointerId);
- if(PT.size<2)gest=null;
- if(PT.size===0){lpClear(); onUp()}
+ if(PT.size<2){gest=null; gestEnd()}
+ if(PT.size===0){
+  lpClear(); onUp();
+  const t=tap2; tap2=null;
+  if(t&&!t.moved&&e.type!=="pointercancel"&&Date.now()-t.t<TAP2_MS
+     &&HOOK.tap2)HOOK.tap2();
+ }
  /* ═══ تحريرُ الالتقاط صريحاً ═══ P5-014
     المتصفّحُ يحرّره عادةً عند النهاية، لكن حدثَ نهايةٍ يُفقَد (العنصرُ
     يُزال · علامةُ تبويبٍ تتبدّل) كان يترك الالتقاطَ معلَّقاً فتذهب
@@ -1283,6 +1483,8 @@ cv.addEventListener("pointerup",ptEnd);
 cv.addEventListener("pointercancel",ptEnd);
 /* وفقدانُ الالتقاط نفسُه يُنظِّف الحالة — المصدرُ الأخير للأمان */
 cv.addEventListener("lostpointercapture",e=>{
+ if(GEST&&PT.size<=2){gest=null; gestEnd()}
+ if(lift&&lift.id===e.pointerId){lift=null; loupeOff(); draw()}
  PT.delete(e.pointerId);
  if(PT.size===0){lpClear(); onUp()}
 });

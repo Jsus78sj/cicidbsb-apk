@@ -104,6 +104,10 @@ import {initHistoryPanel,refreshHistoryPanel} from "./ui/historypanel.js";
 import {help} from "./ui/helppan.js";
 import {initSugg} from "./ui/sugg.js";
 import {initKeymap,rbToggle} from "./ui/keymap.js";
+import {initTouchBar,syncTouchBar} from "./ui/touchbar.js";
+import {touchText} from "./ui/touchtext.js";
+import {backStep} from "./ui/backnav.js";
+import {makeDraggable} from "./ui/fabdrag.js";
 const $=s=>document.querySelector(s);
 const $$=s=>[...document.querySelectorAll(s)];
 /* ═══ سطر الإدخال ═══ مُعرَّفة هنا (قبل build) كي تكون جاهزةً حين
@@ -140,13 +144,18 @@ function build(){
 
  /* ═══ الناقل ═══ أوّلاً — التوصيل ينادي report وprompt وtoggles،
     فلا يجوز أن تُملأ الخطّافات بعده. */
- HOOK.props=()=>{renderProps(); ribbonSel(); quickSel()};
+ HOOK.props=()=>{renderProps(); ribbonSel(); quickSel(); syncTouchBar()};   /* شريطُ التحديد يتبع التحديد (المرحلة ٨) */
  HOOK.refresh=r=>refresh(!!r);
  HOOK.status=m=>eInfo(m);
  HOOK.report=(c,m)=>rep(c,m);
  HOOK.prompt=()=>syncPrompt();
+ /* المرحلة ٦: الحركةُ تطلب المزامنةَ ولا تنفّذها — إطارٌ واحدٌ يكفي ستّين
+    حركة. وأيُّ HOOK.prompt() فوريٍّ بعدها يسبقها فلا تتأخّر حالةٌ حقيقيّة. */
+ {let q=0; HOOK.promptSoon=()=>{if(q)return; q=1;
+  requestAnimationFrame(()=>{q=0; syncPrompt()})}}
  HOOK.toggles=()=>{syncToggles();renderOsPop();syncRibbonTogs();
   syncStatus();syncNav();syncOverlay()};
+ HOOK.rbToggle=k=>rbToggle(k);   /* مفاتيحُ مساعدات الرسم على اللمس (touchbar.js) */
  HOOK.help=()=>help();
  HOOK.defs=()=>syncDefaults();
  HOOK.ctx=(x,y)=>ctxOpen(x,y);
@@ -295,12 +304,14 @@ function build(){
   wireTour();
   initSugg({cl,clSug,syncPrompt});
   initKeymap({cl,syncPrompt});
+  initTouchBar();   /* أزرار ✓ ✕ ↶ ⭘ للّمس — المرحلة ١ من خطّة الهاتف */
 
  /* ═══ روبوت الإرشاد ═══ إضافيٌّ ومستقلٌّ عن لوحة المرجع الثابتة
     (#helpBox / F1 / #bHelp أعلاه) — زرٌّ منفصل في الشريط يفتح
     دردشةً تشرح الأدوات وتُفعِّلها. R.begin يقبل id الأداة مباشرةً،
     فلا حاجة لتخمين اسم دالّة الدخول. */
  const helpBot=createHelpBot({activate:toolId=>R.begin(toolId)});
+ makeDraggable(helpBot&&helpBot.fab);   /* يُسحَب ولا يغطّي الأدوات (المرحلة ٣) */
  mountHelpButton({onClick:()=>helpBot.toggle()});
 
  initHistoryPanel();
@@ -430,19 +441,20 @@ function onConflict(r){
 export function syncPrompt(){
  const q=R.promptText();
  renderKeys($("#clKeys"),R.active()?keysFor(R.T.def,R.step(),k=>R.ov(R.T.def.id,k)):[]);
- const p=(q.tool?q.tool+" · ":"")+q.p;
+ const p=touchText((q.tool?q.tool+" · ":"")+q.p);
  if(clP.textContent!==p)clP.textContent=p;
  const lv=q.live||"";
  if(clL.textContent!==lv)clL.textContent=lv;
  const hn=$("#stHint");
- const h=R.active()
+ const h=touchText(R.active()
   ? (R.T.def.hint||"")+" · Esc يلغي"
-  : "لا أداة نشطة · انقر لتحديد · اسحب إطاراً على الفراغ";
+  : "لا أداة نشطة · انقر لتحديد · اسحب إطاراً على الفراغ");
  if(hn&&hn.textContent!==h)hn.textContent=h;
  syncTools();
  syncRibbon();
  syncDyn();
  syncOptbar();   /* لا buildOptbar: تُنادى مع كل حركة مؤشّر */
+ syncTouchBar(); /* بصمةٌ تُقارَن: لا بناءَ إلّا إن تغيّرت الخطوة */
 }
 /* مفاتيحُ الكتابة: النقرةُ تكتب المفتاح في السطر ولا تنفّذه */
 {const kb=$("#clKeys"); if(kb)kb.addEventListener("click",e=>{
@@ -568,7 +580,8 @@ document.addEventListener("visibilitychange",()=>{
 addEventListener("beforeunload",()=>{saveNow(); bkFlush()});
 /* أندرويد: لا beforeunload — الحفظُ عند الإيقاف، وزرُّ الرجوع يُغلق المفتوح */
 setSay(rep);
-initNative({onPause:()=>{try{saveNow()}catch(e){} try{bkFlush()}catch(e){}}});
+initNative({onPause:()=>{try{saveNow()}catch(e){} try{bkFlush()}catch(e){}},
+ onBack:backStep});   /* أداة ← مفتوح ← تحديد ← خروج (المرحلة ٣) */
 initKeyboard();
 /* المرحلة F: ملفٌّ فُتح به التطبيقُ أو شورك إليه — يُحقَن في منتقي الملفّات
    ويُنقر الزرُّ نفسُه الذي ينقره المستخدم، فيمرّ بكلّ فحوص الفتح ورسائله */
