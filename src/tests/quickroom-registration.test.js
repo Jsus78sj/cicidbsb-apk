@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {findTool} from '../tools/registry.js';
+import '../tools/quickroom.js';
+const tool=findTool('quickroom');
+assert.ok(tool);
+assert.equal(findTool('qroom'),tool);
+assert.equal(findTool('غرفة_سريعة'),tool);
+assert.equal(tool.steps.length,2);
+assert.equal(tool.steps[1].box,true);
+assert.ok(tool.opts.some(x=>x.k==='name'));
+console.log('quickroom registration: ok');

@@ -1,0 +1,16 @@
+{
+ "_": "اختباراتٌ حمراءُ قبل إعادة الهيكلة (2026-10-21) — ليست منها. scripts/ci-tests.js يسمح بها وحدها، ويطلب حذفَ ما يخضرّ منها.",
+ "files": [
+  "cover.js",
+  "dom.js",
+  "guided-persistence.test.js",
+  "guided-room-3d.test.js",
+  "phase0-check.test.js",
+  "quick-opening.test.js",
+  "quickdraw-registration.test.js",
+  "quickopening-registration.test.js",
+  "quickroom-registration.test.js",
+  "quickwall-registration.test.js",
+  "release-contract.test.js"
+ ]
+}

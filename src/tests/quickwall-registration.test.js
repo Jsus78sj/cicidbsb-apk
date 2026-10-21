@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import {findTool} from '../tools/registry.js';
+import '../tools/quickwall.js';
+const tool=findTool('quickwall');
+assert.ok(tool);
+assert.equal(findTool('qw'),tool);
+assert.equal(findTool('جدار_سريع'),tool);
+assert.equal(tool.steps.length,3);
+assert.equal(tool.steps[1].text,true);
+assert.equal(tool.steps[2].text,true);
+assert.ok(tool.opts.some(x=>x.k==='t'));
+console.log('quickwall registration: ok');
